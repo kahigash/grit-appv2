@@ -51,15 +51,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
 
-    const textContent = latest.content.find(
-      (c): c is { type: 'text'; text: { value: string } } => c.type === 'text'
-    );
+    const content = latest.content.find((c) => c.type === 'text');
+    const response = content && 'text' in content ? content.text.value : null;
 
-    if (!textContent) {
+    if (!response) {
       throw new Error('No text response from Assistant.');
     }
 
-    res.status(200).json({ result: textContent.text.value });
+    res.status(200).json({ result: response });
   } catch (error: any) {
     console.error('[Assistant API Error]', error.message);
     res.status(500).json({ error: 'Internal server error' });
