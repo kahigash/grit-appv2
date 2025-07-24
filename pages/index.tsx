@@ -166,6 +166,37 @@ export default function Home() {
       setLoading(false);
     }
   };
+    const handleEvaluateByAssistant = async () => {
+    if (!input.trim()) return;
+
+    setMessages(prev => [...prev, { role: 'user', content: input }]);
+    setInput('');
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: input }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const result = JSON.parse(data.result); // Assistantが返すJSON評価
+        const feedback = `【項目${result.grit_item}】スコア: ${result.score}\n${result.comment}`;
+
+        setMessages(prev => [...prev, { role: 'assistant', content: feedback }]);
+      } else {
+        setError(data.error || '評価APIからの応答に失敗しました。');
+      }
+    } catch (err: any) {
+      setError('通信エラー：' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showInput = (() => {
     const realQuestions = messages.filter((m) => m.role === 'assistant' && !m.isRetryPrompt);
@@ -213,6 +244,10 @@ export default function Home() {
                 style={{ width: '100%', marginBottom: '1rem' }}
               />
               <button onClick={handleSubmit}>送信</button>
+              <button onClick={handleEvaluateByAssistant} disabled={loading} style={{ marginLeft: '1rem' }}>
+  GPT評価で試す
+</button>
+
             </div>
           )}
         </div>
