@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // .env.local に設定してください
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const ASSISTANT_ID = 'asst_uOT6SSfMZTqaihnoILhKUdg6';
@@ -24,25 +24,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. スレッド作成
     const thread = await openai.beta.threads.create();
 
-    // 2. ユーザー回答を送信
+    // 2. ユーザー回答を追加
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: answer,
     });
 
-    // 3. Assistantを起動
+    // 3. アシスタント起動
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: ASSISTANT_ID,
     });
 
-    // 4. 完了までポーリングで待機
+    // 4. 完了まで待機
     let status = run.status;
     while (status !== 'completed') {
       await new Promise((r) => setTimeout(r, 1000));
-      const runStatus = await openai.beta.threads.runs.retrieve({
-        thread_id: thread.id,
-        run_id: run.id,
-      });
+      const runStatus = await openai.beta.threads.runs.retrieve(
+        thread.id,
+        run.id
+      );
       status = runStatus.status;
 
       if (status === 'failed' || status === 'cancelled') {
@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 5. 結果取得
+    // 5. メッセージ一覧取得
     const messages = await openai.beta.threads.messages.list(thread.id);
     const response = messages.data[0]?.content[0]?.text?.value;
 
