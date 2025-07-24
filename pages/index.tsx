@@ -36,7 +36,7 @@ export default function Home() {
 
     try {
       // 1. 回答を送信して記録
-      const updatedMessages = [...messages, { role: 'user', content: answer }];
+      const updatedMessages: Message[] = [...messages, { role: 'user' as const, content: answer }];
       setMessages(updatedMessages);
 
       // 2. 評価取得
@@ -50,7 +50,7 @@ export default function Home() {
       const nextQuestion = questionRes.data.result;
 
       // 4. 質問を記録
-      setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
+      setMessages((prev) => [...prev, { role: 'assistant' as const, content: nextQuestion }]);
 
       // 5. カウントを進める
       setQuestionIndex((prev) => prev + 1);
