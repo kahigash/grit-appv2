@@ -21,21 +21,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // 1. スレッド作成
     const thread = await openai.beta.threads.create();
 
-    // 2. ユーザー回答を追加
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: answer,
     });
 
-    // 3. Assistant起動
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: ASSISTANT_ID,
     });
 
-    // 4. 完了まで待機
     let status = 'queued';
     while (status !== 'completed') {
       await new Promise((r) => setTimeout(r, 1000));
@@ -47,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 5. メッセージ一覧取得
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
 
@@ -58,8 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('No text response from Assistant.');
     }
 
+    // console.log や他の出力はここまで
     res.status(200).json({ result: response });
   } catch (error: any) {
+    // エラー詳細はサーバーログに出力（レスポンスには含めない）
     console.error('[Assistant API Error]', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
