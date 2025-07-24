@@ -52,13 +52,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const rawText = textContent.text.value.trim();
 
-    // JSONだけを抽出（最初の { 〜 最後の } まで）
-    const match = rawText.match(/{[\s\S]*}/);
+    // コメントブロックやコードブロックを除去しつつ、最初のJSONのみ抽出
+    const match = rawText.match(/({[\s\S]*?})/);
+
     if (!match) {
       throw new Error('No valid JSON found in Assistant response');
     }
 
-    const json = JSON.parse(match[0]);
+    const json = JSON.parse(match[1]); // match[0] ではなく [1]（最初のグループ）
 
     res.status(200).json(json);
   } catch (error: any) {
