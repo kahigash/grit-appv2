@@ -1,3 +1,4 @@
+// pages/index.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -55,8 +56,10 @@ export default function Home() {
   useEffect(() => {
     const loadInitialQuestion = async () => {
       try {
-        const res = await axios.post('/api/generate-question', { messages: [] });
-        setMessages([{ role: 'assistant', content: res.data.result }]);
+        const res = await axios.post('/api/generate-question', {
+          history: []
+        });
+        setMessages([{ role: 'assistant', content: res.data.question }]);
       } catch {
         setError('初回の質問取得に失敗しました。');
       }
@@ -99,6 +102,20 @@ export default function Home() {
       goal_orientation: Math.round(total.goal_orientation / count),
       resilience: Math.round(total.resilience / count),
     };
+  };
+
+  const toHistory = (messages: Message[]): { question: string; answer: string }[] => {
+    return messages
+      .filter((m) => m.role === 'assistant' || m.role === 'user')
+      .reduce((acc, msg) => {
+        const last = acc[acc.length - 1];
+        if (msg.role === 'assistant') {
+          acc.push({ question: msg.content, answer: '' });
+        } else if (last && last.answer === '') {
+          last.answer = msg.content;
+        }
+        return acc;
+      }, [] as { question: string; answer: string }[]);
   };
 
   const handleSubmit = async () => {
@@ -152,11 +169,11 @@ export default function Home() {
       }
 
       const nextQuestionRes = await axios.post('/api/generate-question', {
-        messages: updatedMessages
+        history: toHistory(updatedMessages)
       });
       const assistantMessage: Message = {
         role: 'assistant',
-        content: nextQuestionRes.data.result,
+        content: nextQuestionRes.data.question,
       };
       setMessages([...updatedMessages, assistantMessage]);
       setRetryState(false);
