@@ -3,82 +3,76 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-type ChatEntry = {
-  type: 'question' | 'answer';
-  text: string;
-};
-
-type EvaluationResult = {
+interface Evaluation {
   grit_item: number;
   score: number;
   comment: string;
-};
+}
 
 export default function Home() {
-  const [chatLog, setChatLog] = useState<ChatEntry[]>([
-    { type: 'question', text: '質問 1 / 5 これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。' },
-  ]);
-  const [input, setInput] = useState('');
-  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(1);
+  const [question, setQuestion] = useState(
+    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。'
+  );
+  const [answer, setAnswer] = useState('');
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    setChatLog((prev) => [...prev, { type: 'answer', text: input }]);
+  const handleSubmit = async () => {
     setLoading(true);
-    try {
-      const response = await axios.post('/api/assistant', { answer: input });
-      const data = response.data;
+    setError('');
+    setEvaluation(null);
 
-      setEvaluation({
-        grit_item: data.grit_item,
-        score: data.score,
-        comment: data.comment,
-      });
-    } catch (error) {
-      alert('通信エラー：' + (error as any).message);
+    try {
+      const res = await axios.post('/api/assistant', { answer });
+      setEvaluation(res.data);
+      setQuestionIndex((prev) => prev + 1);
+      // 本番では質問の生成APIを呼び出すように変更予定
+    } catch (err: any) {
+      setError('通信エラー：' + err.message);
     } finally {
       setLoading(false);
-      setInput('');
     }
   };
 
   return (
-    <main style={{ display: 'flex', padding: '20px', fontFamily: 'sans-serif' }}>
-      {/* 左側：質問と回答 */}
-      <section style={{ flex: 2, paddingRight: '20px' }}>
+    <div style={{ display: 'flex', padding: '2rem', gap: '2rem' }}>
+      {/* 左：チャット形式の質問と回答 */}
+      <div style={{ flex: 2 }}>
         <h2>GRITチャット</h2>
-        {chatLog.map((entry, idx) => (
-          <div key={idx} style={{ marginBottom: '10px' }}>
-            <strong>{entry.type === 'question' ? 'Q:' : 'A:'}</strong> {entry.text}
-          </div>
-        ))}
+        <p>
+          <strong>Q: 質問 {questionIndex} / 5</strong> {question}
+        </p>
+        {evaluation && (
+          <p>
+            <strong>A:</strong> {answer}
+          </p>
+        )}
         <textarea
-          rows={3}
-          style={{ width: '100%', marginTop: '10px' }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          rows={4}
+          style={{ width: '100%', marginTop: '1rem' }}
         />
-        <button onClick={handleSend} disabled={loading || !input.trim()} style={{ marginTop: '10px' }}>
-          GPT評価で試す
+        <br />
+        <button onClick={handleSubmit} disabled={loading || !answer}>
+          {loading ? '送信中...' : '送信'}
         </button>
-      </section>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+      </div>
 
-      {/* 右側：評価結果表示 */}
-      <aside style={{ flex: 1, borderLeft: '1px solid #ccc', paddingLeft: '20px' }}>
+      {/* 右：評価スコア表示 */}
+      <div style={{ flex: 1 }}>
         <h3>評価スコア</h3>
-        {evaluation ? (
+        {evaluation && (
           <div>
             <p><strong>項目:</strong> {evaluation.grit_item}</p>
             <p><strong>スコア:</strong> {evaluation.score}</p>
             <p><strong>コメント:</strong> {evaluation.comment}</p>
           </div>
-        ) : (
-          <p>評価結果はここに表示されます。</p>
         )}
-      </aside>
-    </main>
+      </div>
+    </div>
   );
 }
