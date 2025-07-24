@@ -26,13 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const thread = await openai.beta.threads.create();
 
     // 2. ユーザーの回答を送信
-    await openai.beta.threads.messages.create({
-  thread.id,
+await openai.beta.threads.messages.create(
+  thread.id, // これは string 型
   {
     role: 'user',
     content: answer,
   }
 );
+
 
     // 3. Assistantを起動
     const run = await openai.beta.threads.runs.create({
