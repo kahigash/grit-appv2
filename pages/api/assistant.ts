@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 2. ユーザーの回答を送信
 await openai.beta.threads.messages.create(
-  thread.id, // これは string 型
+  thread.id,
   {
     role: 'user',
     content: answer,
