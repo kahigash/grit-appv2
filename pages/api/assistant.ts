@@ -43,8 +43,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
     const textContent = latest.content.find(
-      (c): c is { type: 'text'; text: { value: string } } => c.type === 'text'
+    (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
     );
+
 
     if (!textContent) {
       throw new Error('No text response from Assistant');
