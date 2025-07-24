@@ -43,16 +43,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
     const textContent = latest.content.find(
-    (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
+      (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
     );
-
 
     if (!textContent) {
       throw new Error('No text response from Assistant');
     }
 
-    // レスポンスがJSON文字列の前提で処理
-    const json = JSON.parse(textContent.text.value);
+    // ①テキストを取得
+    const rawText = textContent.text.value.trim();
+
+    // ②コードブロック（```json ... ```）を除去
+    const cleanedText = rawText.replace(/^```json\s*|\s*```$/g, '');
+
+    // ③JSONとしてパース
+    const json = JSON.parse(cleanedText);
 
     res.status(200).json(json);
   } catch (error: any) {
