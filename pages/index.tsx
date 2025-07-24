@@ -9,6 +9,11 @@ interface Evaluation {
   comment: string;
 }
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function Home() {
   const [questionIndex, setQuestionIndex] = useState(1);
   const [question, setQuestion] = useState(
@@ -18,6 +23,9 @@ export default function Home() {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: question },
+  ]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -25,11 +33,31 @@ export default function Home() {
     setEvaluation(null);
 
     try {
-      const res = await axios.post('/api/assistant', { answer });
-      setEvaluation(res.data);
-      setQuestionIndex((prev) => prev + 1);
-      // 本番では質問の生成APIを呼び出すように変更予定
+      // 回答を送信して記録
+      const updatedMessages = [...messages, { role: 'user', content: answer }];
+      setMessages(updatedMessages);
+
+      // 1. 回答の評価を取得
+      const evalRes = await axios.post('/api/assistant', { answer });
+      setEvaluation(evalRes.data);
+
+      // 2. 次の質問を取得（5問目まで）
+      if (questionIndex < 5) {
+        const genRes = await axios.post('/api/generate-question', {
+          messages: updatedMessages,
+        });
+        const newQuestion = genRes.data.result;
+
+        setQuestion(newQuestion);
+        setMessages([...updatedMessages, { role: 'assistant', content: newQuestion }]);
+        setQuestionIndex((prev) => prev + 1);
+        setAnswer('');
+      } else {
+        setQuestion('全ての質問が終了しました。ご協力ありがとうございました。');
+        setAnswer('');
+      }
     } catch (err: any) {
+      console.error(err);
       setError('通信エラー：' + err.message);
     } finally {
       setLoading(false);
