@@ -2,10 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!, // 必ず .env.local に設定
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const ASSISTANT_ID = 'asst_uOT6SSfMZTqaihnoILhKUdg6'; // 評価用のAssistant ID
+const ASSISTANT_ID = 'asst_uOT6SSfMZTqaihnoILhKUdg6';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -50,14 +50,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('No text response from Assistant');
     }
 
-    // ①テキストを取得
     const rawText = textContent.text.value.trim();
 
-    // ②コードブロック（```json ... ```）を除去
-    const cleanedText = rawText.replace(/^```json\s*|\s*```$/g, '');
+    // JSONだけを抽出（最初の { 〜 最後の } まで）
+    const match = rawText.match(/{[\s\S]*}/);
+    if (!match) {
+      throw new Error('No valid JSON found in Assistant response');
+    }
 
-    // ③JSONとしてパース
-    const json = JSON.parse(cleanedText);
+    const json = JSON.parse(match[0]);
 
     res.status(200).json(json);
   } catch (error: any) {
