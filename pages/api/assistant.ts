@@ -36,10 +36,12 @@ await openai.beta.threads.messages.create(
 
 
     // 3. Assistantを起動
-    const run = await openai.beta.threads.runs.create({
-      thread_id: thread.id,
-      assistant_id: ASSISTANT_ID,
-    });
+const run = await openai.beta.threads.runs.create(
+  thread.id,
+  {
+    assistant_id: ASSISTANT_ID,
+  }
+);
 
     // 4. 完了まで待機（最大30秒程度）
     let status = 'queued';
