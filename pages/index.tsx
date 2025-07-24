@@ -34,7 +34,7 @@ export default function Home() {
 
     try {
       // 回答を送信して記録
-      const updatedMessages = [...messages, { role: 'user', content: answer }];
+      const updatedMessages: { role: 'user' | 'assistant'; content: string }[] = [...messages, { role: 'user', content: answer }];
       setMessages(updatedMessages);
 
       // 1. 回答の評価を取得
