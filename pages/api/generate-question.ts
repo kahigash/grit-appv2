@@ -6,7 +6,14 @@ import { OpenAI } from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { history, currentIndex } = req.body;
+  const { history } = req.body;
+
+  // ✅ 初回のみ：固定文で返す（または明示プロンプトでも可）
+  if (!history || history.length === 0) {
+    return res.status(200).json({
+      question: 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。'
+    });
+  }
 
   const systemPrompt = `
 あなたはGRIT（非認知能力）を構成する12の要素を評価するインタビュアーです。
@@ -21,9 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 `;
 
   const historyString = history
-    .map(
-      (entry: { question: string; answer: string }, i: number) =>
-        `Q${i + 1}: ${entry.question}\nA${i + 1}: ${entry.answer}`
+    .map((entry: { question: string; answer: string }, i: number) =>
+      `Q${i + 1}: ${entry.question}\nA${i + 1}: ${entry.answer}`
     )
     .join('\n');
 
