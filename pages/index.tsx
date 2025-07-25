@@ -37,7 +37,6 @@ const handleSubmit = async () => {
 
   setLoading(true);
   setError('');
-  setEvaluation(null);
 
   try {
     const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
