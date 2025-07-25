@@ -1,5 +1,3 @@
-// /pages/index.tsx
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -22,7 +20,7 @@ export default function Home() {
     'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
 
   useEffect(() => {
-    setMessages([{ role: 'assistant', content: initialQuestion }]);
+    setMessages([{ role: 'assistant', content: initialQuestion } as const]);
   }, []);
 
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function Home() {
     if (!answer.trim()) return;
 
     setIsLoading(true);
-    const updatedMessages = [...messages, { role: 'user', content: answer }];
+    const updatedMessages = [...messages, { role: 'user', content: answer } as const];
     setMessages(updatedMessages);
 
     try {
@@ -44,7 +42,7 @@ export default function Home() {
 
       const nextQuestion = evalRes.data.question;
 
-      setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion } as const]);
       setQuestionIndex(prev => prev + 1);
       setEvaluatedItems(prev => [...prev, questionIndex]);
     } catch (error) {
@@ -59,7 +57,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-4">
         <div className="flex">
-          {/* 左：チャットエリア */}
+          {/* チャットエリア */}
           <div className="w-2/3 pr-4 border-r">
             <h1 className="text-2xl font-bold mb-4">GRITチャット</h1>
             <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
@@ -98,7 +96,7 @@ export default function Home() {
             <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
           </div>
 
-          {/* 右：評価エリア */}
+          {/* 評価スコア */}
           <div className="w-1/3 pl-4">
             <h2 className="text-xl font-bold mb-2">評価スコア</h2>
             <p className="text-gray-600">ここにスコアが表示されます（今はダミーです）</p>
