@@ -62,9 +62,17 @@ export default function Home() {
         messages: updatedMessages,
       });
 
-      const nextQuestion = questionRes.data.result;
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
+      const { result, grit_item, grit_item_name, questionId } = questionRes.data;
+      setMessages((prev) => [
+  ...prev,
+  {
+    role: 'assistant',
+    content: result,
+    grit_item,
+    grit_item_name,
+    questionId,
+  },
+]);
       setQuestionIndex((prev) => prev + 1);
     } catch (err: any) {
       setError('通信エラー：' + (err?.message || '不明なエラー'));
