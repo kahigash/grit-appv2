@@ -47,10 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  // 使用済みGRIT項目を messages から抽出
-  const usedGritItems: number[] = messages
-    .filter((m: any) => m.role === 'assistant' && typeof m.grit_item === 'number')
-    .map((m: any) => m.grit_item);
+  // 使用済みGRIT項目の抽出（新ロジック）
+  const { messages, usedGritItems: providedUsedGritItems } = req.body;
+
+  const usedGritItems: number[] = Array.isArray(providedUsedGritItems)
+    ? providedUsedGritItems
+    : messages
+        .filter((m: any) => m.role === 'assistant' && typeof m.grit_item === 'number')
+        .map((m: any) => m.grit_item);
 
   // すべての質問が終わった場合
   if (questionCount >= MAX_QUESTIONS || usedGritItems.length >= 12) {
