@@ -8,7 +8,7 @@ const openai = new OpenAI({
 const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
 const MAX_QUESTIONS = 12;
 const FIXED_Q1 =
-  'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
+  '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -21,18 +21,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid request format' });
   }
 
-  // Q1として固定文を返す
   const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
+  // 最初の質問は固定
   if (questionCount === 0) {
-    return res.status(200).json({ result: FIXED_Q1 });
+    return res.status(200).json({
+      result: FIXED_Q1,
+      grit_item: 1,
+      grit_item_name: '注意散漫への対処力',
+      questionId: 1,
+    });
   }
 
-  // Q5まで質問済みならクロージング
+  // 終了条件（12問完了後）
   if (questionCount >= MAX_QUESTIONS) {
     const closingResponse = `ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。`;
     return res.status(200).json({ result: closingResponse });
   }
+
+  // GRIT項目番号（2〜12をローテーション）
+  const gritItem = (questionCount % 12) + 1;
+  const gritItemName = `GRIT項目${gritItem}（未設定）`;
 
   const systemPrompt = `
 あなたは企業の採用面接におけるインタビュアーです。候補者の「GRIT（やり抜く力）」を測定するため、以下の方針で質問を作成してください。
@@ -65,7 +74,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'No content generated' });
     }
 
-    res.status(200).json({ result: generated });
+    res.status(200).json({
+      result: generated,
+      grit_item: gritItem,
+      grit_item_name: gritItemName,
+      questionId: questionCount + 1,
+    });
   } catch (error: any) {
     console.error('OpenAI Error:', error?.response?.data || error.message);
     res.status(500).json({ error: 'Failed to generate question' });
