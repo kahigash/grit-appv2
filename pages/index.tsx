@@ -46,7 +46,6 @@ export default function Home() {
       const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
       setMessages(updatedMessages);
 
-      // 直前の assistant メッセージを取得して評価情報を引き渡す
       const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
 
       const evalRes = await axios.post('/api/assistant', {
@@ -62,18 +61,20 @@ export default function Home() {
         messages: updatedMessages,
       });
 
-      const { result, grit_item, grit_item_name, questionId } = questionRes.data;
-      setMessages((prev) => [
-  ...prev,
-  {
-    role: 'assistant',
-    content: result,
-    grit_item,
-    grit_item_name,
-    questionId,
-  },
-]);
-      setQuestionIndex((prev) => prev + 1);
+      const { content, grit_item, grit_item_name, questionId } = questionRes.data.result;
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content,
+          grit_item,
+          grit_item_name,
+          questionId,
+        }
+      ]);
+
+      setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
       setError('通信エラー：' + (err?.message || '不明なエラー'));
     } finally {
