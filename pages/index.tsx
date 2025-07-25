@@ -57,22 +57,33 @@ export default function Home() {
 
       setEvaluations(prev => [...prev, evalRes.data]);
 
-      const questionRes = await axios.post('/api/generate-question', {
-        messages: [...updatedMessages, lastQuestion].filter(Boolean),
-      });
+const safeMessages: Message[] = [...updatedMessages];
 
-      const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+// 🔍 最初の質問（grit_item: 1）が含まれていない場合は明示的に追加
+const initialUsed = safeMessages.some(
+  m => m.role === 'assistant' && m.grit_item === 1
+);
+if (!initialUsed) {
+  safeMessages.unshift(initialQuestion);
+}
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content,
-          grit_item,
-          grit_item_name,
-          questionId,
-        }
-      ]);
+const questionRes = await axios.post('/api/generate-question', {
+  messages: safeMessages,
+});
+
+const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+
+setMessages(prev => [
+  ...prev,
+  {
+    role: 'assistant',
+    content,
+    grit_item,
+    grit_item_name,
+    questionId,
+  }
+]);
+
 
       setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
