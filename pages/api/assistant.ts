@@ -61,6 +61,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const json = JSON.parse(match[1]); // match[0] ではなく [1]（最初のグループ）
 
+    // grit_item_name を追加（番号と名称のマッピング）
+    const gritItemNames: { [key: number]: string } = {
+      1: '長期的視野',
+      2: '目標設定力',
+      3: '挑戦志向',
+      4: '回復力',
+      5: '柔軟性',
+      6: '内発的動機',
+      7: '没頭力',
+      8: '困難対応力',
+      9: '継続力',
+      10: '学習志向',
+      11: 'やり遂げる力',
+      12: 'モチベーション持続力',
+    };
+
+    json.grit_item_name = gritItemNames[json.grit_item] || '不明';
+
     res.status(200).json(json);
   } catch (error: any) {
     console.error('[Assistant API Error]', error.message);
