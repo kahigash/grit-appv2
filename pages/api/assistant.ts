@@ -1,3 +1,26 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const ASSISTANT_ID = 'asst_uOT6SSfMZTqaihnoILhKUdg6';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { answer } = req.body;
+
+  if (!answer || typeof answer !== 'string') {
+    return res.status(400).json({ error: 'Invalid answer' });
+  }
+
+  try {
+    const thread = await openai.beta.threads.create();
+
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: answer,
