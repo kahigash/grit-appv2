@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages, usedGritItems = [] } = req.body;
+  const { messages } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid request format' });
@@ -47,8 +47,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  // 質問がMAXに到達したら終了メッセージを返す
-  if (questionCount >= MAX_QUESTIONS) {
+  // 使用済みGRIT項目を messages から抽出
+  const usedGritItems: number[] = messages
+    .filter((m: any) => m.role === 'assistant' && typeof m.grit_item === 'number')
+    .map((m: any) => m.grit_item);
+
+  // すべての質問が終わった場合
+  if (questionCount >= MAX_QUESTIONS || usedGritItems.length >= 12) {
     return res.status(200).json({
       result: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
       questionId: questionCount + 1,
@@ -56,6 +61,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       grit_item_name: '終了',
     });
   }
+
+  // 未出題のGRIT項目を特定
+  const remainingGritItems = Object.keys(gritItemNameMap)
+    .map(Number)
+    .filter((item) => !usedGritItems.includes(item));
+
+  if (remainingGritItems.length === 0) {
+    return res.status(200).json({
+      result: 'すべてのGRIT項目への質問が完了しました。ご協力ありがとうございました！',
+      questionId: questionCount + 1,
+      grit_item: 0,
+      grit_item_name: '終了',
+    });
+  }
+
+  const gritItem = remainingGritItems[0]; // ランダムにしたい場合はここをシャッフルしても良い
+  const gritItemName = gritItemNameMap[gritItem];
 
   const systemPrompt = `
 あなたは企業の採用面接におけるインタビュアーです。候補者の「GRIT（やり抜く力）」を測定するため、以下の方針で質問を作成してください。
@@ -77,23 +99,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ];
 
   try {
-    // 残っているGRIT項目を抽出
-    const remainingGritItems = Object.keys(gritItemNameMap)
-      .map(Number)
-      .filter((item) => !usedGritItems.includes(item));
-
-    if (remainingGritItems.length === 0) {
-      return res.status(200).json({
-        result: 'すべてのGRIT項目への質問が完了しました。ご協力ありがとうございました！',
-        questionId: questionCount + 1,
-        grit_item: 0,
-        grit_item_name: '終了',
-      });
-    }
-
-    const gritItem = remainingGritItems[0]; // 最初の未使用項目（ランダムでも可）
-    const gritItemName = gritItemNameMap[gritItem];
-
     const response = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: fullMessages,
@@ -101,13 +106,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const generated = response.choices?.[0]?.message?.content?.trim() || '';
+
     if (!generated) {
       return res.status(500).json({ error: 'No content generated' });
     }
 
     const questionId = questionCount + 1;
 
-    res.status(200).json({
+    return res.status(200).json({
       result: generated,
       questionId,
       grit_item: gritItem,
@@ -115,6 +121,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error: any) {
     console.error('OpenAI Error:', error?.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to generate question' });
+    return res.status(500).json({ error: 'Failed to generate question' });
   }
 }
