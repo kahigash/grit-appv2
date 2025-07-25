@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = req.body;
+  const { messages, usedGritItems = [] } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid request format' });
@@ -77,14 +77,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ];
 
   try {
-    // 使用済みGRIT項目を抽出
-    const usedGritItems = messages
-      .filter((m: any) => m.role === 'assistant' && m.grit_item)
-      .map((m: any) => m.grit_item);
-
+    // 残っているGRIT項目を抽出
     const remainingGritItems = Object.keys(gritItemNameMap)
       .map(Number)
-      .filter(item => !usedGritItems.includes(item));
+      .filter((item) => !usedGritItems.includes(item));
 
     if (remainingGritItems.length === 0) {
       return res.status(200).json({
@@ -95,9 +91,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // 順番に未出項目を出題（ランダムにしたい場合はMath.randomに変更）
-    const gritItem = remainingGritItems[0];
-    const gritItemName = gritItemNameMap[gritItem] || `GRIT項目${gritItem}（未設定）`;
+    const gritItem = remainingGritItems[0]; // 最初の未使用項目（ランダムでも可）
+    const gritItemName = gritItemNameMap[gritItem];
 
     const response = await openai.chat.completions.create({
       model: MODEL_NAME,
