@@ -57,15 +57,8 @@ export default function Home() {
 
       setEvaluations(prev => [...prev, evalRes.data]);
 
-      // 使用済みGRIT項目を抽出して送信
-      const usedGritItems = messages
-        .filter(m => m.role === 'assistant' && m.grit_item)
-        .map(m => m.grit_item)
-        .filter((item, i, arr) => item !== undefined && arr.indexOf(item) === i);
-
       const questionRes = await axios.post('/api/generate-question', {
-        messages: updatedMessages,
-        usedGritItems,
+        messages: [...updatedMessages, lastQuestion].filter(Boolean),
       });
 
       const content = questionRes.data.result;
