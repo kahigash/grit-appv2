@@ -6,7 +6,7 @@ const openai = new OpenAI({
 });
 
 const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
-const MAX_QUESTIONS = 5;
+const MAX_QUESTIONS = 12;
 const FIXED_Q1 =
   'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
 
