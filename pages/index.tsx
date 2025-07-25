@@ -15,10 +15,11 @@ export default function Home() {
   const [answer, setAnswer] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]); // 評価済み項目リスト
+  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
+  const initialQuestion =
+    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
 
   useEffect(() => {
     setMessages([{ role: 'assistant', content: initialQuestion }]);
@@ -32,11 +33,11 @@ export default function Home() {
     if (!answer.trim()) return;
 
     setIsLoading(true);
-    const updatedMessages = [...messages, { role: 'user', content: answer }];
+    const userMessage: Message = { role: 'user', content: answer };
+    const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
     try {
-      // 1. 回答の評価処理（評価項目の特定）
       const evalRes = await axios.post('/api/assistant', {
         answer,
         evaluatedItems,
@@ -44,12 +45,11 @@ export default function Home() {
 
       const nextQuestion = evalRes.data.question;
 
-      // 2. 質問をチャットに追加
-      setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
+      const assistantMessage: Message = { role: 'assistant', content: nextQuestion };
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // 3. 質問カウントを進め、評価済み項目を仮に追加（ここではダミーで+1）
-      setQuestionIndex(prev => prev + 1);
-      setEvaluatedItems(prev => [...prev, questionIndex]);
+      setQuestionIndex((prev) => prev + 1);
+      setEvaluatedItems((prev) => [...prev, questionIndex]);
     } catch (error) {
       console.error('通信エラー:', error);
     }
