@@ -7,8 +7,31 @@ const openai = new OpenAI({
 
 const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
 const MAX_QUESTIONS = 12;
-const FIXED_Q1 =
-  '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？';
+
+// 固定のQ1
+const FIXED_Q1 = {
+  content:
+    '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
+  questionId: 1,
+  grit_item: 1,
+  grit_item_name: '注意散漫への対処力',
+};
+
+// GRIT項目の正式名称マップ（1〜12）
+const gritItemNameMap: Record<number, string> = {
+  1: '注意散漫への対処力',
+  2: '興味・情熱の継続力',
+  3: '目標に向かう力',
+  4: '困難に立ち向かう力',
+  5: '長期的継続力',
+  6: '最後までやり遂げる力',
+  7: '没頭力',
+  8: '計画性・目標設計力',
+  9: '感情のコントロール力',
+  10: '自分を信じる力（自己効力感）',
+  11: '支援を求める力',
+  12: 'モチベーション持続力',
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -21,28 +44,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid request format' });
   }
 
+  // 現在の質問数（assistantの出力回数でカウント）
   const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
-  // 最初の質問は固定
+  // Q1（最初の質問）は固定
   if (questionCount === 0) {
-    return res.status(200).json({
-      result: FIXED_Q1,
-      grit_item: 1,
-      grit_item_name: '注意散漫への対処力',
-      questionId: 1,
-    });
+    return res.status(200).json({ result: FIXED_Q1 });
   }
 
-  // 終了条件（12問完了後）
+  // 質問がMAXまで到達したら終了メッセージを返す
   if (questionCount >= MAX_QUESTIONS) {
     const closingResponse = `ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。`;
     return res.status(200).json({ result: closingResponse });
   }
 
-  // GRIT項目番号（2〜12をローテーション）
-  const gritItem = (questionCount % 12) + 1;
-  const gritItemName = `GRIT項目${gritItem}（未設定）`;
-
+  // Q2〜Q12：通常質問生成プロンプト
   const systemPrompt = `
 あなたは企業の採用面接におけるインタビュアーです。候補者の「GRIT（やり抜く力）」を測定するため、以下の方針で質問を作成してください。
 
@@ -74,11 +90,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'No content generated' });
     }
 
+    // 質問番号とGRIT項目設定（1〜12を順にローテーション）
+    const questionId = questionCount + 1;
+    const gritItem = questionId;
+    const gritItemName = gritItemNameMap[gritItem] || `GRIT項目${gritItem}（未設定）`;
+
     res.status(200).json({
-      result: generated,
-      grit_item: gritItem,
-      grit_item_name: gritItemName,
-      questionId: questionCount + 1,
+      result: {
+        content: generated,
+        questionId,
+        grit_item: gritItem,
+        grit_item_name: gritItemName,
+      },
     });
   } catch (error: any) {
     console.error('OpenAI Error:', error?.response?.data || error.message);
