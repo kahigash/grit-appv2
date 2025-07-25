@@ -31,21 +31,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { messages, usedGritItems: providedUsedGritItems } = req.body;
 
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: 'Invalid request format' });
-  }
+if (!messages || !Array.isArray(messages)) {
+  return res.status(400).json({ error: 'Invalid request format' });
+}
 
-  const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
+const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
-  // Q1（最初の質問）は固定
-  if (questionCount === 0) {
-    return res.status(200).json({
-      result: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
-      questionId: 1,
-      grit_item: 1,
-      grit_item_name: '注意散漫への対処力',
-    });
-  }
+// Q1（最初の質問）は固定
+if (questionCount === 0) {
+  return res.status(200).json({
+    result: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
+    questionId: 1,
+    grit_item: 1,
+    grit_item_name: '注意散漫への対処力',
+  });
+}
 
   // 使用済みGRIT項目の抽出（新ロジック）
   const usedGritItems: number[] = Array.isArray(providedUsedGritItems)
