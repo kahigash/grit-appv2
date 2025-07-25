@@ -57,23 +57,30 @@ export default function Home() {
 
       setEvaluations(prev => [...prev, evalRes.data]);
 
-    const questionRes = await axios.post('/api/generate-question', {
-      messages: updatedMessages,
-    });
+      // 使用済みGRIT項目を抽出して送信
+      const usedGritItems = messages
+        .filter(m => m.role === 'assistant' && m.grit_item)
+        .map(m => m.grit_item)
+        .filter((item, i, arr) => item !== undefined && arr.indexOf(item) === i);
 
-    const content = questionRes.data.result;
-    const { grit_item, grit_item_name, questionId } = questionRes.data;
+      const questionRes = await axios.post('/api/generate-question', {
+        messages: updatedMessages,
+        usedGritItems,
+      });
 
-    setMessages(prev => [
-      ...prev,
-      {
-        role: 'assistant',
-        content,
-        grit_item,
-        grit_item_name,
-        questionId,
-      }
-    ]);
+      const content = questionRes.data.result;
+      const { grit_item, grit_item_name, questionId } = questionRes.data;
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content,
+          grit_item,
+          grit_item_name,
+          questionId,
+        }
+      ]);
 
       setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
