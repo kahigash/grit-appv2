@@ -57,33 +57,39 @@ export default function Home() {
 
       setEvaluations(prev => [...prev, evalRes.data]);
 
-const safeMessages: Message[] = [...updatedMessages];
+      const safeMessages: Message[] = [...updatedMessages];
 
-// 🔍 最初の質問（grit_item: 1）が含まれていない場合は明示的に追加
-const initialUsed = safeMessages.some(
-  m => m.role === 'assistant' && m.grit_item === 1
-);
-if (!initialUsed) {
-  safeMessages.unshift(initialQuestion);
-}
+      // 🔍 最初の質問（grit_item: 1）が含まれていない場合は明示的に追加
+      const initialUsed = safeMessages.some(
+        m => m.role === 'assistant' && m.grit_item === 1
+      );
+      if (!initialUsed) {
+        safeMessages.unshift(initialQuestion);
+      }
 
-const questionRes = await axios.post('/api/generate-question', {
-  messages: safeMessages,
-});
+      // ✅ usedGritItems を抽出
+      const usedGritItems = safeMessages
+        .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
+        .map(m => m.grit_item);
 
-const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+      // ✅ usedGritItems を送信
+      const questionRes = await axios.post('/api/generate-question', {
+        messages: safeMessages,
+        usedGritItems: usedGritItems,
+      });
 
-setMessages(prev => [
-  ...prev,
-  {
-    role: 'assistant',
-    content,
-    grit_item,
-    grit_item_name,
-    questionId,
-  }
-]);
+      const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content,
+          grit_item,
+          grit_item_name,
+          questionId,
+        }
+      ]);
 
       setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
