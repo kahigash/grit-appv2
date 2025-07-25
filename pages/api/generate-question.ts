@@ -55,7 +55,7 @@ if (questionCount === 0) {
         .map((m: any) => m.grit_item);
 
   // すべての質問が終わった場合
-  if (questionCount >= MAX_QUESTIONS || usedGritItems.length >= 12) {
+  if (usedGritItems.length >= 12) {
     return res.status(200).json({
       result: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
       questionId: questionCount + 1,
