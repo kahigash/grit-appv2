@@ -1,6 +1,8 @@
+// /pages/index.tsx
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 interface Message {
@@ -8,103 +10,92 @@ interface Message {
   content: string;
 }
 
-interface Evaluation {
-  grit_item: number;
-  score: number;
-  comment: string;
-}
-
 export default function Home() {
-  const initialQuestion =
-    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
-
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: initialQuestion },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [answer, setAnswer] = useState('');
-  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]); // 評価済み項目リスト
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = async () => {
+  const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
+
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: initialQuestion }]);
+  }, []);
+
+  useEffect(() => {
+    chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
     if (!answer.trim()) return;
 
-    setLoading(true);
-    setError('');
-    setEvaluation(null);
+    setIsLoading(true);
+    const updatedMessages = [...messages, { role: 'user', content: answer }];
+    setMessages(updatedMessages);
 
     try {
-      // 1. 回答を送信して記録
-      const updatedMessages: Message[] = [...messages, { role: 'user' as const, content: answer }];
-      setMessages(updatedMessages);
-
-      // 2. 評価取得
-      const evalRes = await axios.post('/api/assistant', { answer });
-      setEvaluation(evalRes.data);
-
-      // 3. 次の質問を取得（generate-question.ts経由）
-      const questionRes = await axios.post('/api/generate-question', {
-        messages: updatedMessages,
+      // 1. 回答の評価処理（評価項目の特定）
+      const evalRes = await axios.post('/api/assistant', {
+        answer,
+        evaluatedItems,
       });
-      const nextQuestion = questionRes.data.result;
 
-      // 4. 質問を記録
-      setMessages((prev) => [...prev, { role: 'assistant' as const, content: nextQuestion }]);
+      const nextQuestion = evalRes.data.question;
 
-      // 5. カウントを進める
-      setQuestionIndex((prev) => prev + 1);
+      // 2. 質問をチャットに追加
+      setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
 
-      // 6. 入力欄をクリア
-      setAnswer('');
-    } catch (err: any) {
-      setError('通信エラー：' + (err?.message || '不明なエラー'));
-    } finally {
-      setLoading(false);
+      // 3. 質問カウントを進め、評価済み項目を仮に追加（ここではダミーで+1）
+      setQuestionIndex(prev => prev + 1);
+      setEvaluatedItems(prev => [...prev, questionIndex]);
+    } catch (error) {
+      console.error('通信エラー:', error);
     }
+
+    setAnswer('');
+    setIsLoading(false);
   };
 
   return (
-    <div style={{ display: 'flex', padding: '2rem', gap: '2rem' }}>
-      {/* 左：チャット形式の質問と回答履歴 */}
-      <div style={{ flex: 2 }}>
-        <h2>GRITチャット</h2>
-        {messages.map((msg, idx) => (
-          <p key={idx}>
-            <strong>{msg.role === 'assistant' ? `Q: 質問 ${Math.ceil((idx + 1) / 2)} / 5` : 'A:'}</strong>{' '}
-            {msg.content}
-          </p>
-        ))}
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          rows={4}
-          style={{ width: '100%', marginTop: '1rem' }}
-          placeholder="ここに回答を入力してください"
-        />
-        <br />
-        <button onClick={handleSubmit} disabled={loading || !answer}>
-          {loading ? '送信中...' : '送信'}
-        </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-      </div>
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-2xl mx-auto bg-white shadow rounded-lg p-4">
+        <h1 className="text-2xl font-bold mb-4">GRIT測定インタビュー</h1>
+        <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`mb-2 p-2 rounded ${msg.role === 'assistant' ? 'bg-blue-100 text-left' : 'bg-green-100 text-right'}`}
+            >
+              <span className="block text-sm text-gray-600">
+                {msg.role === 'assistant' ? `質問 ${Math.ceil(idx / 2)}` : 'あなた'}
+              </span>
+              <div className="mt-1">{msg.content}</div>
+            </div>
+          ))}
+        </div>
 
-      {/* 右：評価スコア表示 */}
-      <div style={{ flex: 1 }}>
-        <h3>評価スコア</h3>
-        {evaluation && (
-          <div>
-            <p>
-              <strong>項目:</strong> {evaluation.grit_item}
-            </p>
-            <p>
-              <strong>スコア:</strong> {evaluation.score}
-            </p>
-            <p>
-              <strong>コメント:</strong> {evaluation.comment}
-            </p>
-          </div>
-        )}
+        <div className="flex">
+          <input
+            type="text"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            className="flex-grow border border-gray-300 rounded-l px-3 py-2"
+            placeholder="回答を入力..."
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleSend}
+            disabled={isLoading}
+            className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 disabled:opacity-50"
+          >
+            送信
+          </button>
+        </div>
+
+        <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
       </div>
     </div>
   );
