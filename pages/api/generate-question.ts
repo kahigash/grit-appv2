@@ -44,21 +44,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid request format' });
   }
 
-  // 現在の質問数（assistantの出力回数でカウント）
   const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
-  // Q1（最初の質問）は固定
   if (questionCount === 0) {
-    return res.status(200).json({ result: FIXED_Q1 });
+    return res.status(200).json(FIXED_Q1);
   }
 
-  // 質問がMAXまで到達したら終了メッセージを返す
   if (questionCount >= MAX_QUESTIONS) {
     const closingResponse = `ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。`;
     return res.status(200).json({ result: closingResponse });
   }
 
-  // Q2〜Q12：通常質問生成プロンプト
   const systemPrompt = `
 あなたは企業の採用面接におけるインタビュアーです。候補者の「GRIT（やり抜く力）」を測定するため、以下の方針で質問を作成してください。
 
@@ -90,18 +86,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'No content generated' });
     }
 
-    // 質問番号とGRIT項目設定（1〜12を順にローテーション）
     const questionId = questionCount + 1;
     const gritItem = questionId;
     const gritItemName = gritItemNameMap[gritItem] || `GRIT項目${gritItem}（未設定）`;
 
     res.status(200).json({
-      result: {
-        content: generated,
-        questionId,
-        grit_item: gritItem,
-        grit_item_name: gritItemName,
-      },
+      result: generated,
+      questionId,
+      grit_item: gritItem,
+      grit_item_name: gritItemName,
     });
   } catch (error: any) {
     console.error('OpenAI Error:', error?.response?.data || error.message);
