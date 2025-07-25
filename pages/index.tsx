@@ -61,8 +61,7 @@ export default function Home() {
         messages: [...updatedMessages, lastQuestion].filter(Boolean),
       });
 
-      const content = questionRes.data.result;
-      const { grit_item, grit_item_name, questionId } = questionRes.data;
+      const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
       setMessages(prev => [
         ...prev,
