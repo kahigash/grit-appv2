@@ -8,15 +8,6 @@ const openai = new OpenAI({
 const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
 const MAX_QUESTIONS = 12;
 
-// 固定のQ1
-const FIXED_Q1 = {
-  content:
-    '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
-  questionId: 1,
-  grit_item: 1,
-  grit_item_name: '注意散漫への対処力',
-};
-
 // GRIT項目の正式名称マップ（1〜12）
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
@@ -46,13 +37,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
+  // Q1（最初の質問）は固定
   if (questionCount === 0) {
-    return res.status(200).json(FIXED_Q1);
+    return res.status(200).json({
+      result: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
+      questionId: 1,
+      grit_item: 1,
+      grit_item_name: '注意散漫への対処力',
+    });
   }
 
   if (questionCount >= MAX_QUESTIONS) {
-    const closingResponse = `ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。`;
-    return res.status(200).json({ result: closingResponse });
+    return res.status(200).json({
+      result: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
+      questionId: questionCount + 1,
+      grit_item: 0,
+      grit_item_name: '終了',
+    });
   }
 
   const systemPrompt = `
