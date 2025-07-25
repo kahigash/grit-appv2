@@ -32,34 +32,38 @@ export default function Home() {
 const handleSubmit = async () => {
   if (!answer.trim()) return;
 
-  // 入力欄を即座にクリア
-  setAnswer('');
+  const currentAnswer = answer; // 送信前にコピーして保持
+  setAnswer(''); // 入力欄を即時クリア
 
   setLoading(true);
   setError('');
   setEvaluation(null);
 
-    try {
-      const updatedMessages: Message[] = [...messages, { role: 'user', content: answer }];
-      setMessages(updatedMessages);
+  try {
+    const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
+    setMessages(updatedMessages);
 
-      const evalRes = await axios.post('/api/assistant', { answer });
-      setEvaluations((prev) => [...prev, evalRes.data]);
+    // 評価取得
+    const evalRes = await axios.post('/api/assistant', { answer: currentAnswer });
+    setEvaluation(evalRes.data);
 
-      const questionRes = await axios.post('/api/generate-question', {
-        messages: updatedMessages,
-      });
-      const nextQuestion = questionRes.data.result;
+    // 次の質問を取得
+    const questionRes = await axios.post('/api/generate-question', {
+      messages: updatedMessages,
+    });
+    const nextQuestion = questionRes.data.result;
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
-      setQuestionIndex((prev) => prev + 1);
-      setAnswer('');
-    } catch (err: any) {
-      setError('通信エラー：' + (err?.message || '不明なエラー'));
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 次の質問を追加
+    setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
+
+    // カウント進める
+    setQuestionIndex((prev) => prev + 1);
+  } catch (err: any) {
+    setError('通信エラー：' + (err?.message || '不明なエラー'));
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{ display: 'flex', padding: '2rem', gap: '2rem' }}>
