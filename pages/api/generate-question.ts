@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = req.body;
+  const { messages, usedGritItems: providedUsedGritItems } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid request format' });
@@ -48,8 +48,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // 使用済みGRIT項目の抽出（新ロジック）
-  const { messages, usedGritItems: providedUsedGritItems } = req.body;
-
   const usedGritItems: number[] = Array.isArray(providedUsedGritItems)
     ? providedUsedGritItems
     : messages
