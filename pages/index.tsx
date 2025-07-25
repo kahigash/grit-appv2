@@ -44,7 +44,6 @@ const handleSubmit = async () => {
 
     // 評価取得
     const evalRes = await axios.post('/api/assistant', { answer: currentAnswer });
-    setEvaluation(evalRes.data);
 
     // 次の質問を取得
     const questionRes = await axios.post('/api/generate-question', {
