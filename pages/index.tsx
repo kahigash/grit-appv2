@@ -19,14 +19,14 @@ interface Evaluation {
 }
 
 export default function Home() {
-  const initialQuestion = {
+  const initialQuestion: Message = {
   role: 'assistant',
   content: '複数の仕事やタスクがある中で、どれから手をつけるか迷うことはありますか？そのようなとき、集中力を保ちながら効果的に進めるために心がけていることがあれば教えてください。',
   questionId: 1,
   grit_item: 1,
   grit_item_name: '注意コントロール・集中力',
 };
-  
+
 const [messages, setMessages] = useState<Message[]>([initialQuestion]);
     { role: 'assistant', content: initialQuestion },
   ]);
