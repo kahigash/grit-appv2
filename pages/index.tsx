@@ -56,9 +56,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-4 flex gap-4">
-        {/* チャット表示エリア */}
-        <div className="w-2/3">
+      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-4 flex">
+        {/* チャット部分 */}
+        <div className="w-2/3 pr-4 border-r">
           <h1 className="text-2xl font-bold mb-4">GRITチャット</h1>
           <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
             {messages.map((msg, idx) => (
@@ -96,8 +96,8 @@ export default function Home() {
           <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
         </div>
 
-        {/* 評価スコアエリア */}
-        <div className="w-1/3">
+        {/* 評価スコア表示エリア */}
+        <div className="w-1/3 pl-4">
           <h2 className="text-xl font-bold mb-2">評価スコア</h2>
           <p className="text-gray-600">ここにスコアが表示されます（今はダミーです）</p>
         </div>
