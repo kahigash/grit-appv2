@@ -6,6 +6,9 @@ import axios from 'axios';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  questionId?: number;
+  grit_item?: number;
+  grit_item_name?: string;
 }
 
 interface Evaluation {
@@ -16,10 +19,15 @@ interface Evaluation {
 }
 
 export default function Home() {
-  const initialQuestion =
-    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
-
-  const [messages, setMessages] = useState<Message[]>([
+  const initialQuestion = {
+  role: 'assistant',
+  content: '複数の仕事やタスクがある中で、どれから手をつけるか迷うことはありますか？そのようなとき、集中力を保ちながら効果的に進めるために心がけていることがあれば教えてください。',
+  questionId: 1,
+  grit_item: 1,
+  grit_item_name: '注意コントロール・集中力',
+};
+  
+const [messages, setMessages] = useState<Message[]>([initialQuestion]);
     { role: 'assistant', content: initialQuestion },
   ]);
   const [answer, setAnswer] = useState('');
