@@ -5,8 +5,10 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+type Role = 'user' | 'assistant';
+
 interface Message {
-  role: 'user' | 'assistant';
+  role: Role;
   content: string;
 }
 
@@ -18,8 +20,7 @@ export default function Home() {
   const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const initialQuestion =
-    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
+  const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
 
   useEffect(() => {
     setMessages([{ role: 'assistant', content: initialQuestion }]);
@@ -33,8 +34,7 @@ export default function Home() {
     if (!answer.trim()) return;
 
     setIsLoading(true);
-    const userMessage: Message = { role: 'user', content: answer };
-    const updatedMessages = [...messages, userMessage];
+    const updatedMessages: Message[] = [...messages, { role: 'user', content: answer }];
     setMessages(updatedMessages);
 
     try {
@@ -45,11 +45,9 @@ export default function Home() {
 
       const nextQuestion = evalRes.data.question;
 
-      const assistantMessage: Message = { role: 'assistant', content: nextQuestion };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      setQuestionIndex((prev) => prev + 1);
-      setEvaluatedItems((prev) => [...prev, questionIndex]);
+      setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
+      setQuestionIndex(prev => prev + 1);
+      setEvaluatedItems(prev => [...prev, questionIndex]);
     } catch (error) {
       console.error('通信エラー:', error);
     }
