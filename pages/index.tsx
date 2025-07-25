@@ -57,22 +57,23 @@ export default function Home() {
 
       setEvaluations(prev => [...prev, evalRes.data]);
 
-      const questionRes = await axios.post('/api/generate-question', {
-        messages: updatedMessages,
-      });
+    const questionRes = await axios.post('/api/generate-question', {
+      messages: updatedMessages,
+    });
 
-      const { content, grit_item, grit_item_name, questionId } = questionRes.data.result;
+    const content = questionRes.data.result;
+    const { grit_item, grit_item_name, questionId } = questionRes.data;
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content,
-          grit_item,
-          grit_item_name,
-          questionId,
-        }
-      ]);
+    setMessages(prev => [
+      ...prev,
+      {
+        role: 'assistant',
+        content,
+        grit_item,
+        grit_item_name,
+        questionId,
+      }
+    ]);
 
       setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
