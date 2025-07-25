@@ -15,7 +15,7 @@ export default function Home() {
   const [answer, setAnswer] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]); // 評価済み項目リスト
+  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
@@ -36,7 +36,6 @@ export default function Home() {
     setMessages(updatedMessages);
 
     try {
-      // 1. 回答の評価処理（評価項目の特定）
       const evalRes = await axios.post('/api/assistant', {
         answer,
         evaluatedItems,
@@ -44,10 +43,7 @@ export default function Home() {
 
       const nextQuestion = evalRes.data.question;
 
-      // 2. 質問をチャットに追加
       setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
-
-      // 3. 質問カウントを進め、評価済み項目を仮に追加（ここではダミーで+1）
       setQuestionIndex(prev => prev + 1);
       setEvaluatedItems(prev => [...prev, questionIndex]);
     } catch (error) {
@@ -60,42 +56,51 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-2xl mx-auto bg-white shadow rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">GRIT測定インタビュー</h1>
-        <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`mb-2 p-2 rounded ${msg.role === 'assistant' ? 'bg-blue-100 text-left' : 'bg-green-100 text-right'}`}
+      <div className="max-w-6xl mx-auto grid grid-cols-3 gap-4">
+        {/* 左：チャット領域 */}
+        <div className="col-span-2 bg-white shadow rounded-lg p-4">
+          <h1 className="text-2xl font-bold mb-4">GRITチャット</h1>
+          <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`mb-2 p-2 rounded ${msg.role === 'assistant' ? 'bg-blue-100 text-left' : 'bg-green-100 text-right'}`}
+              >
+                <span className="block text-sm text-gray-600">
+                  {msg.role === 'assistant' ? `Q: 質問 ${Math.ceil(idx / 2)} / 12` : 'あなた'}
+                </span>
+                <div className="mt-1">{msg.content}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex">
+            <input
+              type="text"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              className="flex-grow border border-gray-300 rounded-l px-3 py-2"
+              placeholder="ここに回答を入力してください"
+              disabled={isLoading}
+            />
+            <button
+              onClick={handleSend}
+              disabled={isLoading}
+              className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 disabled:opacity-50"
             >
-              <span className="block text-sm text-gray-600">
-                {msg.role === 'assistant' ? `質問 ${Math.ceil(idx / 2)}` : 'あなた'}
-              </span>
-              <div className="mt-1">{msg.content}</div>
-            </div>
-          ))}
+              送信
+            </button>
+          </div>
+
+          <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
         </div>
 
-        <div className="flex">
-          <input
-            type="text"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            className="flex-grow border border-gray-300 rounded-l px-3 py-2"
-            placeholder="回答を入力..."
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSend}
-            disabled={isLoading}
-            className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 disabled:opacity-50"
-          >
-            送信
-          </button>
+        {/* 右：評価スコア領域 */}
+        <div className="col-span-1 bg-white shadow rounded-lg p-4">
+          <h2 className="text-xl font-bold mb-2">評価スコア</h2>
+          <p className="text-gray-500">ここにスコアが表示されます（今はダミーです）</p>
         </div>
-
-        <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
       </div>
     </div>
   );
