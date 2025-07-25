@@ -18,7 +18,8 @@ export default function Home() {
   const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
+  const initialQuestion =
+    'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
 
   useEffect(() => {
     setMessages([{ role: 'assistant', content: initialQuestion }]);
@@ -32,7 +33,7 @@ export default function Home() {
     if (!answer.trim()) return;
 
     setIsLoading(true);
-    const updatedMessages: Message[] = [...messages, { role: 'user', content: answer }];
+    const updatedMessages = [...messages, { role: 'user', content: answer }];
     setMessages(updatedMessages);
 
     try {
@@ -56,50 +57,52 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-4 flex">
-        {/* チャット部分 */}
-        <div className="w-2/3 pr-4 border-r">
-          <h1 className="text-2xl font-bold mb-4">GRITチャット</h1>
-          <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`mb-2 p-2 rounded ${msg.role === 'assistant' ? 'bg-blue-100 text-left' : 'bg-green-100 text-right'}`}
+      <div className="max-w-6xl mx-auto bg-white shadow rounded-lg p-4">
+        <div className="flex">
+          {/* 左：チャットエリア */}
+          <div className="w-2/3 pr-4 border-r">
+            <h1 className="text-2xl font-bold mb-4">GRITチャット</h1>
+            <div ref={chatContainerRef} className="h-96 overflow-y-auto border p-3 mb-4 bg-gray-50">
+              {messages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`mb-2 p-2 rounded ${msg.role === 'assistant' ? 'bg-blue-100 text-left' : 'bg-green-100 text-right'}`}
+                >
+                  <span className="block text-sm text-gray-600">
+                    {msg.role === 'assistant' ? `Q: 質問 ${Math.ceil(idx / 2)} / 12` : 'あなた'}
+                  </span>
+                  <div className="mt-1">{msg.content}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex">
+              <input
+                type="text"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                className="flex-grow border border-gray-300 rounded-l px-3 py-2"
+                placeholder="ここに回答を入力してください"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSend}
+                disabled={isLoading}
+                className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 disabled:opacity-50"
               >
-                <span className="block text-sm text-gray-600">
-                  {msg.role === 'assistant' ? `Q: 質問 ${Math.ceil(idx / 2)} / 12` : 'あなた'}
-                </span>
-                <div className="mt-1">{msg.content}</div>
-              </div>
-            ))}
+                送信
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
           </div>
 
-          <div className="flex">
-            <input
-              type="text"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-grow border border-gray-300 rounded-l px-3 py-2"
-              placeholder="ここに回答を入力してください"
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleSend}
-              disabled={isLoading}
-              className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 disabled:opacity-50"
-            >
-              送信
-            </button>
+          {/* 右：評価エリア */}
+          <div className="w-1/3 pl-4">
+            <h2 className="text-xl font-bold mb-2">評価スコア</h2>
+            <p className="text-gray-600">ここにスコアが表示されます（今はダミーです）</p>
           </div>
-
-          <div className="text-sm text-gray-500 mt-2">質問 {questionIndex} / 12</div>
-        </div>
-
-        {/* 評価スコア表示エリア */}
-        <div className="w-1/3 pl-4">
-          <h2 className="text-xl font-bold mb-2">評価スコア</h2>
-          <p className="text-gray-600">ここにスコアが表示されます（今はダミーです）</p>
         </div>
       </div>
     </div>
