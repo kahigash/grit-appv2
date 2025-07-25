@@ -5,10 +5,8 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-type Role = 'user' | 'assistant';
-
 interface Message {
-  role: Role;
+  role: 'user' | 'assistant';
   content: string;
 }
 
@@ -17,7 +15,7 @@ export default function Home() {
   const [answer, setAnswer] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]);
+  const [evaluatedItems, setEvaluatedItems] = useState<number[]>([]); // 評価済み項目リスト
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const initialQuestion = 'これまでに、どうしてもやり遂げたいと思って粘り強く取り組んだ長期的な目標やプロジェクトがあれば教えてください。その際に直面した最も大きな困難と、それをどう乗り越えたかを詳しく聞かせてください。';
@@ -38,6 +36,7 @@ export default function Home() {
     setMessages(updatedMessages);
 
     try {
+      // 1. 回答の評価処理（評価項目の特定）
       const evalRes = await axios.post('/api/assistant', {
         answer,
         evaluatedItems,
@@ -45,7 +44,10 @@ export default function Home() {
 
       const nextQuestion = evalRes.data.question;
 
+      // 2. 質問をチャットに追加
       setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
+
+      // 3. 質問カウントを進め、評価済み項目を仮に追加（ここではダミーで+1）
       setQuestionIndex(prev => prev + 1);
       setEvaluatedItems(prev => [...prev, questionIndex]);
     } catch (error) {
