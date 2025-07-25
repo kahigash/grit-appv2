@@ -49,7 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messages = await openai.beta.threads.messages.list(thread.id);
     const reply = messages.data
       .filter(m => m.role === 'assistant')
-      .map(m => m.content[0]?.text?.value || '')
+      .map(m => {
+        const firstContent = m.content[0];
+        if (firstContent?.type === 'text') {
+          return firstContent.text.value;
+        }
+        return '';
+      })
       .join('\n')
       .trim();
 
