@@ -28,13 +28,11 @@ const initialQuestion: Message = {
 };
 
 const [messages, setMessages] = useState<Message[]>([initialQuestion]);
-    { role: 'assistant', content: initialQuestion },
-  ]);
-  const [answer, setAnswer] = useState('');
-  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [questionIndex, setQuestionIndex] = useState(1);
+const [answer, setAnswer] = useState('');
+const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState('');
+const [questionIndex, setQuestionIndex] = useState(1);
 
 // handleSubmit の冒頭部分を修正します
 const handleSubmit = async () => {
