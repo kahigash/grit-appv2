@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { answer } = req.body;
+  const { answer, grit_item } = req.body;
 
   if (!answer || typeof answer !== 'string') {
     return res.status(400).json({ error: 'Invalid answer' });
@@ -59,7 +59,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('No valid JSON found in Assistant response');
     }
 
-    const json = JSON.parse(match[1]); // match[0] ではなく [1]（最初のグループ）
+    const json = JSON.parse(match[1]);
+
+    // 🔧 出題側で指定された grit_item を優先して使用
+    if (typeof grit_item === 'number') {
+      json.grit_item = grit_item;
+    }
 
     // grit_item_name を追加（番号と名称のマッピング）
     const gritItemNames: { [key: number]: string } = {
