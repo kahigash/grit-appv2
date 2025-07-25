@@ -19,60 +19,62 @@ interface Evaluation {
 }
 
 export default function Home() {
-const initialQuestion: Message = {
-  role: 'assistant',
-  content: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
-  questionId: 1,
-  grit_item: 1,
-  grit_item_name: '注意散漫への対処力'
-};
+  const initialQuestion: Message = {
+    role: 'assistant',
+    content: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
+    questionId: 1,
+    grit_item: 1,
+    grit_item_name: '注意散漫への対処力',
+  };
 
-const [messages, setMessages] = useState<Message[]>([initialQuestion]);
-const [answer, setAnswer] = useState('');
-const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState('');
-const [questionIndex, setQuestionIndex] = useState(1);
+  const [messages, setMessages] = useState<Message[]>([initialQuestion]);
+  const [answer, setAnswer] = useState('');
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [questionIndex, setQuestionIndex] = useState(1);
 
-// handleSubmit の冒頭部分を修正します
-const handleSubmit = async () => {
-  if (!answer.trim()) return;
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
 
-  const currentAnswer = answer; // 送信前にコピーして保持
-  setAnswer(''); // 入力欄を即時クリア
+    const currentAnswer = answer;
+    setAnswer('');
+    setLoading(true);
+    setError('');
 
-  setLoading(true);
-  setError('');
+    try {
+      const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
+      setMessages(updatedMessages);
 
-  try {
-    const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
-    setMessages(updatedMessages);
+      // 直前の assistant メッセージを取得して評価情報を引き渡す
+      const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
 
-    // 評価取得
-    const evalRes = await axios.post('/api/assistant', { answer: currentAnswer });
-    setEvaluations(prev => [...prev, evalRes.data]);
+      const evalRes = await axios.post('/api/assistant', {
+        answer: currentAnswer,
+        questionId: lastQuestion?.questionId,
+        grit_item: lastQuestion?.grit_item,
+        grit_item_name: lastQuestion?.grit_item_name,
+      });
 
-    // 次の質問を取得
-    const questionRes = await axios.post('/api/generate-question', {
-      messages: updatedMessages,
-    });
-    const nextQuestion = questionRes.data.result;
+      setEvaluations(prev => [...prev, evalRes.data]);
 
-    // 次の質問を追加
-    setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
+      const questionRes = await axios.post('/api/generate-question', {
+        messages: updatedMessages,
+      });
 
-    // カウント進める
-    setQuestionIndex((prev) => prev + 1);
-  } catch (err: any) {
-    setError('通信エラー：' + (err?.message || '不明なエラー'));
-  } finally {
-    setLoading(false);
-  }
-};
+      const nextQuestion = questionRes.data.result;
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: nextQuestion }]);
+      setQuestionIndex((prev) => prev + 1);
+    } catch (err: any) {
+      setError('通信エラー：' + (err?.message || '不明なエラー'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', padding: '2rem', gap: '2rem' }}>
-      {/* 左：チャット形式の質問と回答履歴 */}
       <div style={{ flex: 2 }}>
         <h2>GRITチャット</h2>
         {messages.map((msg, idx) => (
@@ -95,7 +97,6 @@ const handleSubmit = async () => {
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </div>
 
-      {/* 右：評価スコア履歴表示 */}
       <div style={{ flex: 1 }}>
         <h3>評価スコア</h3>
         {evaluations.map((evalItem, idx) => (
