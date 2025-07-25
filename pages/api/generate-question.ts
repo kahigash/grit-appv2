@@ -8,6 +8,7 @@ const openai = new OpenAI({
 const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
 const MAX_QUESTIONS = 12;
 
+// GRIT項目の正式名称マップ（1〜12）
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
   2: '興味・情熱の継続力',
@@ -36,25 +37,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
+  // Q1（最初の質問）は固定
   if (questionCount === 0) {
     return res.status(200).json({
-      result: {
-        content: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
-        questionId: 1,
-        grit_item: 1,
-        grit_item_name: '注意散漫への対処力',
-      }
+      result: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
+      questionId: 1,
+      grit_item: 1,
+      grit_item_name: '注意散漫への対処力',
     });
   }
 
+  // 質問がMAXに到達したら終了メッセージを返す
   if (questionCount >= MAX_QUESTIONS) {
     return res.status(200).json({
-      result: {
-        content: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
-        questionId: questionCount + 1,
-        grit_item: 0,
-        grit_item_name: '終了',
-      }
+      result: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
+      questionId: questionCount + 1,
+      grit_item: 0,
+      grit_item_name: '終了',
     });
   }
 
@@ -78,6 +77,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ];
 
   try {
+    // 使用済みGRIT項目を抽出
+    const usedGritItems = messages
+      .filter((m: any) => m.role === 'assistant' && m.grit_item)
+      .map((m: any) => m.grit_item);
+
+    const remainingGritItems = Object.keys(gritItemNameMap)
+      .map(Number)
+      .filter(item => !usedGritItems.includes(item));
+
+    if (remainingGritItems.length === 0) {
+      return res.status(200).json({
+        result: 'すべてのGRIT項目への質問が完了しました。ご協力ありがとうございました！',
+        questionId: questionCount + 1,
+        grit_item: 0,
+        grit_item_name: '終了',
+      });
+    }
+
+    // 順番に未出項目を出題（ランダムにしたい場合はMath.randomに変更）
+    const gritItem = remainingGritItems[0];
+    const gritItemName = gritItemNameMap[gritItem] || `GRIT項目${gritItem}（未設定）`;
+
     const response = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: fullMessages,
@@ -90,16 +111,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const questionId = questionCount + 1;
-    const gritItem = questionId;
-    const gritItemName = gritItemNameMap[gritItem] || `GRIT項目${gritItem}（未設定）`;
 
     res.status(200).json({
-      result: {
-        content: generated,
-        questionId,
-        grit_item: gritItem,
-        grit_item_name: gritItemName,
-      }
+      result: generated,
+      questionId,
+      grit_item: gritItem,
+      grit_item_name: gritItemName,
     });
   } catch (error: any) {
     console.error('OpenAI Error:', error?.response?.data || error.message);
