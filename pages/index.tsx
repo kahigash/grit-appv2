@@ -28,11 +28,16 @@ export default function Home() {
   const [error, setError] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
 
-  const handleSubmit = async () => {
-    if (!answer.trim()) return;
+// handleSubmit の冒頭部分を修正します
+const handleSubmit = async () => {
+  if (!answer.trim()) return;
 
-    setLoading(true);
-    setError('');
+  // 入力欄を即座にクリア
+  setAnswer('');
+
+  setLoading(true);
+  setError('');
+  setEvaluation(null);
 
     try {
       const updatedMessages: Message[] = [...messages, { role: 'user', content: answer }];
