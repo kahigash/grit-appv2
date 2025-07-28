@@ -45,7 +45,7 @@ export default function ResultPage() {
     const parsed: Evaluation[] = JSON.parse(stored);
     setEvaluations(parsed);
 
-    const qaPairs = localStorage.getItem('qaPairs');
+    const qaPairs = localStorage.getItem('gritQAPairs');
     if (!qaPairs) {
       setSummary('QAペアが見つかりません。');
       setLoading(false);
