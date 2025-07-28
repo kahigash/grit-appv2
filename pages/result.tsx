@@ -1,16 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import {
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, ResponsiveContainer
-} from 'recharts';
-
-type Evaluation = {
-  grit_item: number;
-  score: number;
-  comment: string;
-};
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
@@ -27,21 +18,43 @@ const gritItemNameMap: Record<number, string> = {
   12: 'モチベーション持続力',
 };
 
+const riskExamples: Record<number, string> = {
+  1: '注意が散漫になりやすく、複数タスクで混乱する可能性があります。',
+  2: '関心が継続せず、途中で興味を失うリスクがあります。',
+  3: '挑戦に積極的でない場合、変化に対応しづらくなる可能性があります。',
+  4: 'ストレスや逆境に対する回復が遅く、モチベーションが低下しやすくなります。',
+  5: '変化に適応しづらく、柔軟な対応ができないリスクがあります。',
+  6: '動機づけが外的要因に左右されやすく、自主性に欠ける恐れがあります。',
+  7: '集中力が続かず、成果が中途半端になる可能性があります。',
+  8: '困難に受け身で対応しがちで、課題が長引く恐れがあります。',
+  9: '長期的な努力が継続できず、結果に結びつかないことがあります。',
+  10: '学習の反復や改善が少なく、成長が鈍化する可能性があります。',
+  11: '最後までやり抜けず、信頼性に欠けると見なされる恐れがあります。',
+  12: 'モチベーションの維持が難しく、波が激しい傾向があります。',
+};
+
 export default function ResultPage() {
-  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
-  const router = useRouter();
+  const [evaluations, setEvaluations] = useState<any[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('gritEvaluations');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setEvaluations(parsed);
-      } catch (e) {
-        console.error('Invalid JSON in localStorage');
-      }
+    const data = localStorage.getItem('gritEvaluations');
+    if (data) {
+      setEvaluations(JSON.parse(data));
     }
   }, []);
+
+  const averageScore =
+    evaluations.length > 0
+      ? evaluations.reduce((sum, e) => sum + e.score, 0) / evaluations.length
+      : 0;
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 4.5) return '非常に高いGRIT（Top Tier）';
+    if (score >= 3.5) return '高めのGRIT（Reliable）';
+    if (score >= 2.5) return '平均的GRIT（Typical）';
+    if (score >= 1.5) return 'GRITが弱め（Unstable）';
+    return '要改善（Critical）';
+  };
 
   const chartData = evaluations.map((item) => ({
     subject: gritItemNameMap[item.grit_item] ?? `項目${item.grit_item}`,
@@ -50,46 +63,42 @@ export default function ResultPage() {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h2>GRIT診断結果</h2>
+      <h1>GRIT診断結果</h1>
 
-      {evaluations.length === 12 ? (
-        <>
-          <h3 style={{ marginTop: '2rem' }}>総評</h3>
-          {/* ここに総評テキストを後で追加できます */}
+      <section style={{ marginTop: '2rem' }}>
+        <h2>総評</h2>
+        <p><strong>平均スコア:</strong> {averageScore.toFixed(2)} / 5</p>
+        <p><strong>評価:</strong> {getScoreLabel(averageScore)}</p>
+      </section>
 
-          <h3 style={{ marginTop: '2rem' }}>レーダーチャート</h3>
-          <div style={{ width: '600px' }}>
-            <ResponsiveContainer width="100%" height={400}>
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis angle={30} domain={[0, 5]} />
-                <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                <Tooltip />
-              </RadarChart>
-            </ResponsiveContainer>
+      <section style={{ marginTop: '2rem' }}>
+        <h2>レーダーチャート</h2>
+        <div style={{ width: '600px', height: '400px' }}>
+          <ResponsiveContainer>
+            <RadarChart outerRadius={150} data={chartData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis angle={30} domain={[0, 5]} />
+              <Radar name="スコア" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+              <Tooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>個別評価</h2>
+        {evaluations.map((e, i) => (
+          <div key={i} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ccc' }}>
+            <p><strong>{gritItemNameMap[e.grit_item]}</strong></p>
+            <p>スコア: {e.score}</p>
+            <p>コメント: {e.comment}</p>
+            {e.score <= 2 && (
+              <p style={{ color: 'red' }}><strong>⚠ リスク:</strong> {riskExamples[e.grit_item]}</p>
+            )}
           </div>
-
-          <h3 style={{ marginTop: '2rem' }}>個別評価</h3>
-          {evaluations.map((item, idx) => (
-            <div key={idx} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ccc' }}>
-              <p><strong>質問{idx + 1}:</strong></p>
-              <p><strong>対象項目:</strong> {item.grit_item}（{gritItemNameMap[item.grit_item]}）</p>
-              <p><strong>スコア:</strong> {item.score}</p>
-              <p><strong>コメント:</strong> {item.comment}</p>
-            </div>
-          ))}
-
-          <button
-            style={{ marginTop: '2rem' }}
-            onClick={() => router.push('/')}
-          >
-            最初のページに戻る
-          </button>
-        </>
-      ) : (
-        <p>12問すべての評価が揃っていないため、結果を表示できません。</p>
-      )}
+        ))}
+      </section>
     </div>
   );
 }
