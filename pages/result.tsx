@@ -54,17 +54,23 @@ export default function ResultPage() {
 
       {evaluations.length === 12 ? (
         <>
-          <ResponsiveContainer width="100%" height={400}>
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="subject" />
-              <PolarRadiusAxis angle={30} domain={[0, 5]} />
-              <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-              <Tooltip />
-            </RadarChart>
-          </ResponsiveContainer>
+          <h3 style={{ marginTop: '2rem' }}>総評</h3>
+          {/* ここに総評テキストを後で追加できます */}
 
-          <h3 style={{ marginTop: '2rem' }}>詳細評価</h3>
+          <h3 style={{ marginTop: '2rem' }}>レーダーチャート</h3>
+          <div style={{ width: '600px' }}>
+            <ResponsiveContainer width="100%" height={400}>
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" />
+                <PolarRadiusAxis angle={30} domain={[0, 5]} />
+                <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                <Tooltip />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <h3 style={{ marginTop: '2rem' }}>個別評価</h3>
           {evaluations.map((item, idx) => (
             <div key={idx} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ccc' }}>
               <p><strong>質問{idx + 1}:</strong></p>
