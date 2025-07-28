@@ -10,20 +10,25 @@ type Evaluation = {
   comment: string;
 };
 
-const gritLabels: { [key: number]: string } = {
-  1: '注意散漫対処',
-  2: '情熱継続',
-  3: '挑戦志向',
-  4: 'レジリエンス',
+const gritItemNameMap: Record<number, string> = {
+  1: '注意散漫への対処力',
+  2: '興味・情熱の継続力',
+  3: '目標に向かう力',
+  4: '困難に立ち向かう力',
   5: '柔軟性',
-  6: '内発動機',
+  6: '内発的動機',
   7: '没頭力',
-  8: '困難対応',
+  8: '困難対応力',
   9: '継続力',
   10: '学習志向',
-  11: 'やり遂げ力',
-  12: 'モチベ維持',
+  11: 'やり遂げる力',
+  12: 'モチベーション持続力',
 };
+
+const chartData = evaluations.map((item) => ({
+  subject: gritItemNameMap[item.grit_item] ?? `項目${item.grit_item}`,
+  A: item.score,
+}));
 
 export default function ResultPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
