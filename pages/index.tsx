@@ -64,12 +64,12 @@ export default function Home() {
 
       const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
 
-      const evalRes = await axios.post('/api/assistant', {
-        answer: currentAnswer,
-        questionId: lastQuestion?.questionId,
-        grit_item: lastQuestion?.grit_item,
-        grit_item_name: lastQuestion?.grit_item_name,
-      });
+    const evalRes = await axios.post('/api/assistant', {
+      answer: currentAnswer,
+      questionText: lastQuestion?.content || '',
+      questionId: lastQuestion?.questionId,
+      grit_item: lastQuestion?.grit_item,
+    });
 
       // ✅ grit_item_name をマップから補完
       setEvaluations(prev => [
