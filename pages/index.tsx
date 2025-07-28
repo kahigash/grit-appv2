@@ -163,15 +163,33 @@ export default function Home() {
 
       </div>
 
-      <div style={{ flex: 1 }}>
-        <h3>評価スコア</h3>
-        {evaluations.map((evalItem, idx) => (
-          <div key={idx} style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ccc' }}>
-            <p><strong>質問{idx + 1}</strong></p>
-            <p><strong>対象項目:</strong> {evalItem.grit_item}（{evalItem.grit_item_name}）</p>
-            <p><strong>スコア:</strong> {evalItem.score}</p>
-            <p><strong>コメント:</strong> {evalItem.comment}</p>
-          </div>
+<div style={{ flex: 1 }}>
+  <h3>評価スコア</h3>
+  {evaluations.map((evalItem, idx) => (
+    <div
+      key={idx}
+      style={{
+        marginBottom: '1rem',
+        padding: '0.5rem',
+        border: '1px solid #ccc',
+        lineHeight: '1.3', // 行間を詰める
+      }}
+    >
+      <p style={{ margin: '0.2rem 0' }}>
+        <strong>質問{idx + 1}</strong>
+      </p>
+      <p style={{ margin: '0.2rem 0' }}>
+        <strong>対象項目:</strong> {evalItem.grit_item}（{evalItem.grit_item_name}）
+      </p>
+      <p style={{ margin: '0.2rem 0' }}>
+        <strong>スコア:</strong> {evalItem.score}
+      </p>
+      <p style={{ margin: '0.2rem 0' }}>
+        <strong>コメント:</strong> {evalItem.comment}
+      </p>
+    </div>
+  ))}
+</div>
         ))}
       </div>
     </div>
