@@ -121,6 +121,26 @@ export default function Home() {
           {loading ? '送信中...' : '送信'}
         </button>
         {error && <p style={{ color: 'red' }}>{error}</p>}
+
+        {questionIndex === 12 && (
+          <button
+            onClick={() => {
+              localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
+              window.location.href = '/result';
+            }}
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            診断結果を確認する
+          </button>
+        )}
       </div>
 
       <div style={{ flex: 1 }}>
