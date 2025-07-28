@@ -18,6 +18,22 @@ interface Evaluation {
   comment: string;
 }
 
+// ✅ GRIT項目マップ（評価名の正規化用）
+const gritItemNameMap: Record<number, string> = {
+  1: '注意散漫への対処力',
+  2: '熱意の持続性',
+  3: '長期集中力',
+  4: '関心の安定性',
+  5: '目標の一貫性',
+  6: '関心の持続力',
+  7: '没頭力',
+  8: 'レジリエンス',
+  9: '長期的継続力',
+  10: '地道な努力の継続性',
+  11: 'やり遂げ力',
+  12: 'モチベーションの自己管理力',
+};
+
 export default function Home() {
   const initialQuestion: Message = {
     role: 'assistant',
@@ -55,11 +71,17 @@ export default function Home() {
         grit_item_name: lastQuestion?.grit_item_name,
       });
 
-      setEvaluations(prev => [...prev, evalRes.data]);
+      // ✅ grit_item_name をマップから補完
+      setEvaluations(prev => [
+        ...prev,
+        {
+          ...evalRes.data,
+          grit_item_name: gritItemNameMap[evalRes.data.grit_item],
+        }
+      ]);
 
       const safeMessages: Message[] = [...updatedMessages];
 
-      // 🔍 最初の質問（grit_item: 1）が含まれていない場合は明示的に追加
       const initialUsed = safeMessages.some(
         m => m.role === 'assistant' && m.grit_item === 1
       );
@@ -67,12 +89,10 @@ export default function Home() {
         safeMessages.unshift(initialQuestion);
       }
 
-      // ✅ usedGritItems を抽出
       const usedGritItems = safeMessages
         .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
         .map(m => m.grit_item);
 
-      // ✅ usedGritItems を送信
       const questionRes = await axios.post('/api/generate-question', {
         messages: safeMessages,
         usedGritItems: usedGritItems,
@@ -125,7 +145,6 @@ export default function Home() {
         {questionIndex === 12 && (
           <button
             onClick={() => {
-              // 質問と回答をペアにして整形
               const qaPairs = messages
                 .reduce<string[]>((acc, msg, idx) => {
                   if (msg.role === 'assistant') {
@@ -140,11 +159,8 @@ export default function Home() {
                 }, [])
                 .join('\n\n');
 
-              // ローカルストレージに保存
               localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
               localStorage.setItem('qaPairs', qaPairs);
-
-              // 結果ページへ遷移
               window.location.href = '/result';
             }}
             style={{
@@ -160,36 +176,35 @@ export default function Home() {
             診断結果を確認する
           </button>
         )}
-
       </div>
 
-<div style={{ flex: 1 }}>
-  <h3>評価スコア</h3>
-  {evaluations.map((evalItem, idx) => (
-    <div
-      key={idx}
-      style={{
-        marginBottom: '1rem',
-        padding: '0.5rem',
-        border: '1px solid #ccc',
-        lineHeight: '1.3', // 行間を詰める
-      }}
-    >
-      <p style={{ margin: '0.2rem 0' }}>
-        <strong>質問{idx + 1}</strong>
-      </p>
-      <p style={{ margin: '0.2rem 0' }}>
-        <strong>対象項目:</strong> {evalItem.grit_item}（{evalItem.grit_item_name}）
-      </p>
-      <p style={{ margin: '0.2rem 0' }}>
-        <strong>スコア:</strong> {evalItem.score}
-      </p>
-      <p style={{ margin: '0.2rem 0' }}>
-        <strong>コメント:</strong> {evalItem.comment}
-      </p>
-    </div>
-  ))}
-</div>
+      <div style={{ flex: 1 }}>
+        <h3>評価スコア</h3>
+        {evaluations.map((evalItem, idx) => (
+          <div
+            key={idx}
+            style={{
+              marginBottom: '1rem',
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              lineHeight: '1.3',
+            }}
+          >
+            <p style={{ margin: '0.2rem 0' }}>
+              <strong>質問{idx + 1}</strong>
+            </p>
+            <p style={{ margin: '0.2rem 0' }}>
+              <strong>対象項目:</strong> {evalItem.grit_item}（{evalItem.grit_item_name}）
+            </p>
+            <p style={{ margin: '0.2rem 0' }}>
+              <strong>スコア:</strong> {evalItem.score}
+            </p>
+            <p style={{ margin: '0.2rem 0' }}>
+              <strong>コメント:</strong> {evalItem.comment}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
