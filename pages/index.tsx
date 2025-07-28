@@ -125,7 +125,26 @@ export default function Home() {
         {questionIndex === 12 && (
           <button
             onClick={() => {
+              // 質問と回答をペアにして整形
+              const qaPairs = messages
+                .reduce<string[]>((acc, msg, idx) => {
+                  if (msg.role === 'assistant') {
+                    const next = messages[idx + 1];
+                    if (next?.role === 'user') {
+                      acc.push(
+                        `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
+                      );
+                    }
+                  }
+                  return acc;
+                }, [])
+                .join('\n\n');
+
+              // ローカルストレージに保存
               localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
+              localStorage.setItem('qaPairs', qaPairs);
+
+              // 結果ページへ遷移
               window.location.href = '/result';
             }}
             style={{
@@ -141,6 +160,7 @@ export default function Home() {
             診断結果を確認する
           </button>
         )}
+
       </div>
 
       <div style={{ flex: 1 }}>
