@@ -123,8 +123,8 @@ export default function ResultPage() {
       <p>{scoreLevel(parseFloat(averageScore))}</p>
 
       <h2>レーダーチャート</h2>
-      <div style={{ width: '100%', height: 400, marginBottom: '2rem' }}>
-        <ResponsiveContainer width="70%" height="100%">
+      <div style={{ width: '70%', height: 400, marginBottom: '2rem', textAlign: 'left' }}>
+        <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData}>
             <PolarGrid />
             <PolarAngleAxis dataKey="subject" />
