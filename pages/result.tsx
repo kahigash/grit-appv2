@@ -100,11 +100,16 @@ export default function ResultPage() {
       <h1>GRIT診断結果</h1>
 
       <h2>AIコメント</h2>
-      <p style={{ whiteSpace: 'pre-line', marginBottom: '2rem' }}>{summary}</p>
+      {summary === null ? (
+        <p style={{ marginBottom: '2rem' }}>AIコメント作成中...</p>
+      ) : (
+        <p style={{ whiteSpace: 'pre-line', marginBottom: '2rem' }}>{summary}</p>
+      )}
 
-      <h2>結果サマリー</h2>
-      <p>平均スコア: {averageScore}</p>
-      <p>{scoreLevel(parseFloat(averageScore))}</p>
+  <h2>結果サマリー</h2>
+  <p>平均スコア: {averageScore}</p>
+  <p>{scoreLevel(parseFloat(averageScore))}</p>
+
 
       <h2>レーダーチャート</h2>
       <div style={{ maxWidth: 600, marginLeft: 0 }}>
