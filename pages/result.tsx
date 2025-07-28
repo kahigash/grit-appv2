@@ -1,8 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 type Evaluation = {
   grit_item: number;
@@ -28,58 +36,45 @@ const gritItemNameMap: Record<number, string> = {
 export default function ResultPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [summary, setSummary] = useState('');
-  const [dots, setDots] = useState('.');
-
-  // ドットの増減用エフェクト（1秒周期）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots((prev) => (prev.length < 3 ? prev + '.' : '.'));
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem('gritEvaluations');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      setEvaluations(parsed);
-
-      // 質問と回答のペアを文字列に整形
-      const qaPairs = parsed
-        .map((item: Evaluation, idx: number) => {
-          return `【質問${idx + 1}】\nQ: ${gritItemNameMap[item.grit_item]}\nA: ${item.comment}`;
-        })
-        .join('\n\n');
-
-      fetch('/api/summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qaPairs }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.summary) setSummary(data.summary);
-        })
-        .catch((err) => {
-          console.error('AIコメント取得エラー:', err);
-          setSummary('AIコメントの取得に失敗しました。');
-        });
+      setEvaluations(JSON.parse(stored));
     }
   }, []);
 
-  if (evaluations.length === 0) {
-    return <p>評価データが見つかりません。</p>;
-  }
+  useEffect(() => {
+    const storedQA = localStorage.getItem('qaPairs');
+    if (storedQA) {
+      fetch('/api/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qaPairs: storedQA }),
+      })
+        .then((res) => res.json())
+        .then((data) => setSummary(data.summary))
+        .catch(() => setSummary('AIコメントの取得に失敗しました'))
+        .finally(() => setLoadingSummary(false));
+    } else {
+      setSummary('QAペアが見つかりません');
+      setLoadingSummary(false);
+    }
+  }, []);
 
-  const averageScore = (
-    evaluations.reduce((sum, item) => sum + item.score, 0) / evaluations.length
-  ).toFixed(2);
+  const averageScore = useMemo(() => {
+    if (evaluations.length === 0) return '0';
+    const total = evaluations.reduce((sum, item) => sum + item.score, 0);
+    return (total / evaluations.length).toFixed(2);
+  }, [evaluations]);
 
   const scoreLevel = (score: number) => {
-    if (score >= 4.5) return '非常に高いGRITスコアです。自己管理能力が優れています。';
-    if (score >= 3.5) return '高めのGRITスコアです。安定した継続力が期待できます。';
-    if (score >= 2.5) return '平均的なGRITスコアです。職務内容によっては適応力が求められます。';
-    return 'GRITスコアがやや低めです。根気や粘り強さの確認が必要かもしれません。';
+    if (score >= 4.5) return '非常に高いGRIT傾向が見られます。';
+    if (score >= 3.5) return '比較的高いGRIT傾向があります。';
+    if (score >= 2.5) return '平均的なGRIT傾向です。';
+    return 'GRIT傾向がやや低い可能性があります。';
   };
 
   const chartData = evaluations.map((item) => ({
@@ -87,13 +82,25 @@ export default function ResultPage() {
     A: item.score,
   }));
 
+  const strengths = useMemo(() => {
+    return evaluations
+      .filter((e) => e.score >= 4)
+      .map((e) => `${gritItemNameMap[e.grit_item]}（スコア${e.score}）`);
+  }, [evaluations]);
+
+  const weaknesses = useMemo(() => {
+    return evaluations
+      .filter((e) => e.score <= 2)
+      .map((e) => `${gritItemNameMap[e.grit_item]}（スコア${e.score}）`);
+  }, [evaluations]);
+
   return (
     <div style={{ padding: '2rem' }}>
       <h1>GRIT診断結果</h1>
 
       <h2>AIコメント</h2>
       <p style={{ whiteSpace: 'pre-line', marginBottom: '2rem' }}>
-        {summary ? summary : `AIコメント作成中${dots}`}
+        {loadingSummary ? 'AIコメント作成中' + '.'.repeat(Math.floor(Date.now() / 500) % 4) : summary}
       </p>
 
       <h2>結果サマリー</h2>
@@ -114,15 +121,19 @@ export default function ResultPage() {
       </div>
 
       <h2>評価項目別のまとめ</h2>
-        <h3>✅ 強み</h3>
-        <ul>
-          {strengths.map((item, idx) => <li key={idx}>{item}</li>)}
-        </ul>
-        <h3>⚠️ 改善の余地あり</h3>
-        <ul>
-          {weaknesses.map((item, idx) => <li key={idx}>{item}</li>)}
-        </ul>
-      
+      <h3>✅ 強み</h3>
+      <ul>
+        {strengths.map((item, idx) => (
+          <li key={idx}>{item}</li>
+        ))}
+      </ul>
+      <h3>⚠️ 改善の余地あり</h3>
+      <ul>
+        {weaknesses.map((item, idx) => (
+          <li key={idx}>{item}</li>
+        ))}
+      </ul>
+
       <h2>個別評価</h2>
       {evaluations.map((evalItem, idx) => (
         <div key={idx} style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ccc' }}>
