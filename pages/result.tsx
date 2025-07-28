@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
@@ -12,14 +12,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-// 型定義
+// 評価の型定義
 type Evaluation = {
   grit_item: number;
   score: number;
   comment: string;
 };
 
-// GRIT項目の名前マップ
+// GRIT項目のマッピング
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
   2: '興味・情熱の継続力',
@@ -40,27 +40,38 @@ export default function ResultPage() {
   const [summary, setSummary] = useState<string>('');
   const router = useRouter();
 
-  // localStorage から評価スコアと質問回答を読み込み
   useEffect(() => {
     const stored = localStorage.getItem('gritEvaluations');
     if (stored) {
-      try {
-        const parsed: Evaluation[] = JSON.parse(stored);
-        setEvaluations(parsed);
-      } catch (e) {
-        console.error('JSON parse error:', e);
-      }
+      const parsed = JSON.parse(stored);
+      setEvaluations(parsed);
     }
-    const qaPairs = localStorage.getItem('gritQA');
-    if (qaPairs) {
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('gritEvaluations');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const formattedText = parsed
+        .map(
+          (item: Evaluation, index: number) =>
+            `【質問${index + 1}】\nQ: ${gritItemNameMap[item.grit_item] ?? '不明な項目'}に関する質問\nA: ${item.comment}`
+        )
+        .join('\n\n');
+
       fetch('/api/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qaPairs }),
+        body: JSON.stringify({ qaPairs: formattedText }),
       })
-        .then(res => res.json())
-        .then(data => setSummary(data.summary))
-        .catch(err => console.error('総評取得エラー:', err));
+        .then((res) => res.json())
+        .then((data) => {
+          setSummary(data.summary || '総評の取得に失敗しました');
+        })
+        .catch((err) => {
+          console.error('総評取得エラー:', err);
+          setSummary('総評の取得に失敗しました');
+        });
     }
   }, []);
 
@@ -69,40 +80,71 @@ export default function ResultPage() {
     A: item.score,
   }));
 
+  const averageScore =
+    evaluations.length > 0
+      ? (
+          evaluations.reduce((sum, item) => sum + item.score, 0) /
+          evaluations.length
+        ).toFixed(2)
+      : 'N/A';
+
+  const scoreLevel = (avg: number) => {
+    if (avg >= 4.5) return '非常に高いGRITスコアです。自信を持って推奨できます。';
+    if (avg >= 3.5) return '高めのGRITスコアです。安定した傾向が見られます。';
+    if (avg >= 2.5) return '平均的なGRITスコアです。課題の可能性が一部見られます。';
+    return 'ややGRITが不足している傾向があります。注意が必要です。';
+  };
+
   return (
     <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem' }}>GRIT診断結果</h1>
+      <h1>GRIT診断結果</h1>
 
-      <h2 style={{ fontSize: '1.5rem', marginTop: '2rem' }}>総評</h2>
-      {summary ? (
-        <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8' }}>{summary}</p>
-      ) : (
-        <p>総評を読み込み中...</p>
-      )}
+      <h2>AIコメント</h2>
+      <p style={{ whiteSpace: 'pre-line', marginBottom: '2rem' }}>{summary}</p>
 
-      <h2 style={{ fontSize: '1.5rem', marginTop: '2rem' }}>レーダーチャート</h2>
-      <div style={{ width: '100%', height: 400, marginTop: '1rem' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="30%" cy="50%" outerRadius="80%" data={chartData}>
+      <h2>結果サマリー</h2>
+      <p>平均スコア: {averageScore}</p>
+      <p>{scoreLevel(parseFloat(averageScore))}</p>
+
+      <h2>レーダーチャート</h2>
+      <div style={{ maxWidth: 600, marginLeft: 0 }}>
+        <ResponsiveContainer width="100%" height={400}>
+          <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
             <PolarGrid />
             <PolarAngleAxis dataKey="subject" />
             <PolarRadiusAxis angle={30} domain={[0, 5]} />
-            <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
             <Tooltip />
+            <Radar
+              name="GRIT"
+              dataKey="A"
+              stroke="#8884d8"
+              fill="#8884d8"
+              fillOpacity={0.6}
+            />
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
-      <h2 style={{ fontSize: '1.5rem', marginTop: '2rem' }}>個別評価</h2>
-      {evaluations.map((evalItem, idx) => (
+      <h2>個別評価</h2>
+      {evaluations.map((item, idx) => (
         <div
           key={idx}
-          style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '6px' }}
+          style={{
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+          }}
         >
-          <p><strong>質問{idx + 1}</strong></p>
-          <p><strong>対象項目:</strong> {evalItem.grit_item}（{gritItemNameMap[evalItem.grit_item]}）</p>
-          <p><strong>スコア:</strong> {evalItem.score}</p>
-          <p><strong>コメント:</strong> {evalItem.comment}</p>
+          <p>
+            <strong>項目{item.grit_item}：</strong> {gritItemNameMap[item.grit_item]}
+          </p>
+          <p>
+            <strong>スコア：</strong> {item.score}
+          </p>
+          <p>
+            <strong>コメント：</strong> {item.comment}
+          </p>
         </div>
       ))}
     </div>
