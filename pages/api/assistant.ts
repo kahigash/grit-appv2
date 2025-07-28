@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { answer, grit_item } = req.body;
+  const { answer, grit_item, questionText } = req.body;
 
   if (!answer || typeof answer !== 'string') {
     return res.status(400).json({ error: 'Invalid answer' });
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
-      content: answer,
+      content: `【質問】${questionText}\n【回答】${answer}`,
     });
 
     const run = await openai.beta.threads.runs.create(thread.id, {
