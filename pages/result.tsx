@@ -113,6 +113,16 @@ export default function ResultPage() {
         </ResponsiveContainer>
       </div>
 
+      <h2>評価項目別のまとめ</h2>
+        <h3>✅ 強み</h3>
+        <ul>
+          {strengths.map((item, idx) => <li key={idx}>{item}</li>)}
+        </ul>
+        <h3>⚠️ 改善の余地あり</h3>
+        <ul>
+          {weaknesses.map((item, idx) => <li key={idx}>{item}</li>)}
+        </ul>
+      
       <h2>個別評価</h2>
       {evaluations.map((evalItem, idx) => (
         <div key={idx} style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ccc' }}>
