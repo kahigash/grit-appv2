@@ -19,6 +19,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // 🔍 デバッグログ
+    console.log('📨 Assistantに送信:', { answer, grit_item });
+
     const thread = await openai.beta.threads.create();
 
     await openai.beta.threads.messages.create(thread.id, {
@@ -51,8 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const rawText = textContent.text.value.trim();
+    console.log('🧠 Assistant応答（RAW）:', rawText);
 
-    // コメントブロックやコードブロックを除去しつつ、最初のJSONのみ抽出
     const match = rawText.match(/({[\s\S]*?})/);
 
     if (!match) {
@@ -61,28 +64,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const json = JSON.parse(match[1]);
 
-    // 🔧 出題側で指定された grit_item を優先して使用
     if (typeof grit_item === 'number') {
       json.grit_item = grit_item;
     }
 
-    // grit_item_name を追加（番号と名称のマッピング）
-    const gritItemNames: { [key: number]: string } = {
-      1: '長期的視野',
-      2: '目標設定力',
-      3: '挑戦志向',
-      4: '回復力',
-      5: '柔軟性',
-      6: '内発的動機',
-      7: '没頭力',
-      8: '困難対応力',
-      9: '継続力',
-      10: '学習志向',
-      11: 'やり遂げる力',
-      12: 'モチベーション持続力',
-    };
-
-    json.grit_item_name = gritItemNames[json.grit_item] || '不明';
+    // ❌ 不正な名称マップを削除
+    // ✅ grit_item_name は index.tsx 側で付加すること（二重定義を防ぐ）
 
     res.status(200).json(json);
   } catch (error: any) {
