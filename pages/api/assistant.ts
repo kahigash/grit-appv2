@@ -18,6 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid answer' });
   }
 
+  if (typeof grit_item !== 'number') {
+    return res.status(400).json({ error: 'Missing or invalid grit_item' });
+  }
+
   try {
     // 🔍 デバッグログ
     console.log('📨 Assistantに送信:', { answer, grit_item });
@@ -64,11 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const json = JSON.parse(match[1]);
 
-    if (typeof grit_item === 'number') {
-      json.grit_item = grit_item;
-    }
+    // ✅ Assistantの出力に含まれていたとしても、grit_item は外部指定を優先
+    json.grit_item = grit_item;
 
-    // ❌ 不正な名称マップを削除
     // ✅ grit_item_name は index.tsx 側で付加すること（二重定義を防ぐ）
 
     res.status(200).json(json);
