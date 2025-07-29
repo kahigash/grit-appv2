@@ -28,7 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 既出のGRIT項目から未出の番号を抽出（1〜12）
     const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
     const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
-    const nextItem = remainingItems[0];
 
     const gritItemNames: Record<number, string> = {
       1: '注意散漫への対処力',
@@ -45,9 +44,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       12: 'モチベーションの自己管理力',
     };
 
+    // ✅ すべての項目が出題済みの場合：クロージングメッセージを返す
+    if (remainingItems.length === 0) {
+      return res.status(200).json({
+        result: '以上で全12問の質問が終了しました。ご回答ありがとうございました。',
+        grit_item: null,
+        grit_item_name: null,
+        questionId: usedGritItems.length + 1,
+      });
+    }
+
+    const nextItem = remainingItems[0];
+
     // ✅ Assistantに次に出すべきGRIT項目を伝えるが、出力には含めないよう明示する
     const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\nなお、次に評価したい観点は「${nextItem}：${gritItemNames[nextItem]}」ですが、この意図はユーザーに悟られないようにしてください。質問文には評価対象の項目名や番号などを一切含めず、自然なインタビュースタイルの質問を1つだけ出力してください（200文字以内）。`;
-
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
