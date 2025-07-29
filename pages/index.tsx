@@ -50,69 +50,28 @@ export default function Home() {
   const [error, setError] = useState('');
   const [questionIndex, setQuestionIndex] = useState(1);
 
-const handleSubmit = async () => {
-  if (!answer.trim()) return;
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
 
-  const currentAnswer = answer;
-  setAnswer('');
-  setLoading(true);
-  setError('');
+    const currentAnswer = answer;
+    setAnswer('');
+    setLoading(true);
+    setError('');
 
-  try {
-    const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
-    setMessages(updatedMessages);
+    try {
+      const updatedMessages: Message[] = [...messages, { role: 'user', content: currentAnswer }];
+      setMessages(updatedMessages);
 
-    const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
+      const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
 
-    // 🔍 評価アシスタントに送信
-    const evalRes = await axios.post('/api/assistant', {
-      answer: currentAnswer,
-      questionText: lastQuestion?.content || '',
-      grit_item: lastQuestion?.grit_item,
-    });
+      // 🔍 評価アシスタントに送信
+      const evalRes = await axios.post('/api/assistant', {
+        answer: currentAnswer,
+        questionText: lastQuestion?.content || '',
+        grit_item: lastQuestion?.grit_item,
+      });
 
-    // ✅ 評価データに名前を付加して保存
-    setEvaluations(prev => [
-      ...prev,
-      {
-        ...evalRes.data,
-        grit_item_name: gritItemNameMap[evalRes.data.grit_item],
-      }
-    ]);
-
-    // 🔍 次の質問を生成（直前までのすべての履歴を送信）
-    const usedGritItems = messages
-      .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
-      .map(m => m.grit_item);
-
-    const questionRes = await axios.post('/api/generate-question', {
-      messages: [...messages, { role: 'user', content: currentAnswer }],
-      usedGritItems,
-    });
-
-    const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
-
-    setMessages(prev => [
-      ...prev,
-      {
-        role: 'assistant',
-        content,
-        grit_item,
-        grit_item_name,
-        questionId,
-      }
-    ]);
-
-    setQuestionIndex(prev => prev + 1);
-  } catch (err: any) {
-    console.error('❌ handleSubmit error:', err.message);
-    setError('通信エラー：' + (err?.message || '不明なエラー'));
-  } finally {
-    setLoading(false);
-  }
-};
-
-      // ✅ grit_item_name をマップから補完
+      // ✅ 評価データに名前を付加して保存
       setEvaluations(prev => [
         ...prev,
         {
@@ -154,6 +113,7 @@ const handleSubmit = async () => {
 
       setQuestionIndex(prev => prev + 1);
     } catch (err: any) {
+      console.error('❌ handleSubmit error:', err.message);
       setError('通信エラー：' + (err?.message || '不明なエラー'));
     } finally {
       setLoading(false);
