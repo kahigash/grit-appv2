@@ -47,7 +47,6 @@ export default function Home() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [questionIndex, setQuestionIndex] = useState(1);
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
@@ -70,13 +69,12 @@ export default function Home() {
         grit_item: lastQuestion?.grit_item,
       });
 
-      setEvaluations(prev => [
-        ...prev,
-        {
-          ...evalRes.data,
-          grit_item_name: gritItemNameMap[evalRes.data.grit_item],
-        }
-      ]);
+      const newEvaluation = {
+        ...evalRes.data,
+        grit_item_name: gritItemNameMap[evalRes.data.grit_item],
+      };
+      const newEvaluations = [...evaluations, newEvaluation];
+      setEvaluations(newEvaluations);
 
       const safeMessages: Message[] = [...updatedMessages];
       const usedGritItems = safeMessages
@@ -90,27 +88,20 @@ export default function Home() {
 
       const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
-      if (grit_item === null) {
+      if (grit_item === null || newEvaluations.length === 12) {
         setMessages(prev => [
           ...prev,
-          { role: 'assistant', content }
+          ...(grit_item ? [{ role: 'assistant', content, grit_item, grit_item_name, questionId }] : []),
+          { role: 'assistant', content: '以上で全12問の質問は終了です。ご回答ありがとうございました。' }
         ]);
         setLoading(false);
         return;
       }
 
-      if (evaluations.length === 11) {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content, grit_item, grit_item_name, questionId },
-          { role: 'assistant', content: '以上で全12問の質問は終了です。ご回答ありがとうございました。' }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content, grit_item, grit_item_name, questionId }
-        ]);
-      }
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content, grit_item, grit_item_name, questionId }
+      ]);
     } catch (err: any) {
       console.error('❌ handleSubmit error:', err.message);
       setError('通信エラー：' + (err?.message || '不明なエラー'));
@@ -136,13 +127,7 @@ export default function Home() {
           </p>
         ))}
 
-        {!loading &&
-        evaluations.length < 12 &&
-        !(
-          messages.length > 0 &&
-          messages[messages.length - 1].role === 'assistant' &&
-          messages[messages.length - 1].content.includes('全12問の質問は終了')
-        ) && (
+        {!loading && evaluations.length < 12 && (
           <div>
             <textarea
               value={answer}
@@ -156,7 +141,7 @@ export default function Home() {
               送信
             </button>
           </div>
-      )}
+        )}
 
         {loading && (
           <p style={{ marginTop: '1rem', color: '#555' }}>次の質問を生成中です...</p>
@@ -164,42 +149,41 @@ export default function Home() {
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
-        {messages.length > 0 &&
-          messages[messages.length - 1].role === 'assistant' &&
-          messages[messages.length - 1].content.includes('全12問の質問は終了') && (
-            <button
-              onClick={() => {
-                const qaPairs = messages
-                  .reduce<string[]>((acc, msg, idx) => {
-                    if (msg.role === 'assistant') {
-                      const next = messages[idx + 1];
-                      if (next?.role === 'user') {
-                        acc.push(
-                          `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
-                        );
-                      }
+        {/* ✅ 修正：評価が12個揃ったら「診断結果を見る」ボタン表示 */}
+        {evaluations.length === 12 && (
+          <button
+            onClick={() => {
+              const qaPairs = messages
+                .reduce<string[]>((acc, msg, idx) => {
+                  if (msg.role === 'assistant' && msg.questionId) {
+                    const next = messages[idx + 1];
+                    if (next?.role === 'user') {
+                      acc.push(
+                        `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
+                      );
                     }
-                    return acc;
-                  }, [])
-                  .join('\n\n');
+                  }
+                  return acc;
+                }, [])
+                .join('\n\n');
 
-                localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
-                localStorage.setItem('qaPairs', qaPairs);
-                window.location.href = '/result';
-              }}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#0070f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              診断結果を確認する
-            </button>
-          )}
+              localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
+              localStorage.setItem('gritQAPairs', qaPairs); // ✅ 修正：キー名をgritQAPairsに統一
+              window.location.href = '/result';
+            }}
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            診断結果を見る
+          </button>
+        )}
       </div>
 
       <div style={{ flex: 1 }}>
