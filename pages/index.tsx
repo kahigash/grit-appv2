@@ -91,8 +91,19 @@ export default function Home() {
       if (grit_item === null || newEvaluations.length === 12) {
         setMessages(prev => [
           ...prev,
-          ...(grit_item ? [{ role: 'assistant', content, grit_item, grit_item_name, questionId }] : []),
-          { role: 'assistant', content: '以上で全12問の質問は終了です。ご回答ありがとうございました。' }
+          ...(grit_item
+            ? [{
+                role: 'assistant' as const,
+                content,
+                grit_item,
+                grit_item_name,
+                questionId,
+              }]
+            : []),
+          {
+            role: 'assistant' as const,
+            content: '以上で全12問の質問は終了です。ご回答ありがとうございました。',
+          }
         ]);
         setLoading(false);
         return;
