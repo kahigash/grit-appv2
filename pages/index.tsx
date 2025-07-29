@@ -130,19 +130,31 @@ export default function Home() {
             {msg.content}
           </p>
         ))}
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          rows={4}
-          style={{ width: '100%', marginTop: '1rem' }}
-          placeholder="ここに回答を入力してください"
-          disabled={evaluations.length >= 12}
-        />
-        <br />
-        <button onClick={handleSubmit} disabled={loading || !answer || evaluations.length >= 12}>
-          {loading ? '送信中...' : '送信'}
-        </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        
+    {/* 回答入力欄と送信ボタン */}
+{!loading && questionIndex <= 12 && (
+  <div>
+    <textarea
+      value={answer}
+      onChange={(e) => setAnswer(e.target.value)}
+      rows={4}
+      style={{ width: '100%', marginTop: '1rem' }}
+      placeholder="ここに回答を入力してください"
+    />
+    <br />
+    <button onClick={handleSubmit} disabled={!answer}>
+      送信
+    </button>
+  </div>
+)}
+
+{/* ローディング中の表示 */}
+{loading && (
+  <p style={{ marginTop: '1rem', color: '#555' }}>次の質問を生成中です...</p>
+)}
+
+{/* エラー表示 */}
+{error && <p style={{ color: 'red' }}>{error}</p>}
 
         {/* ✅ ボタン表示条件を修正：12問すべて評価済みの場合のみ */}
         {evaluations.length === 12 && (
