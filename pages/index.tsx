@@ -18,7 +18,6 @@ interface Evaluation {
   comment: string;
 }
 
-// ✅ GRIT項目マップ（評価名の正規化用）
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
   2: '熱意の持続性',
@@ -48,10 +47,10 @@ export default function Home() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [questionIndex, setQuestionIndex] = useState(1);
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
+    if (evaluations.length >= 12) return; // 🔒 保険：13問目以降に進まない
 
     const currentAnswer = answer;
     setAnswer('');
@@ -64,14 +63,12 @@ export default function Home() {
 
       const lastQuestion = messages.slice().reverse().find(msg => msg.role === 'assistant');
 
-      // 🔍 評価アシスタントに送信
       const evalRes = await axios.post('/api/assistant', {
         answer: currentAnswer,
         questionText: lastQuestion?.content || '',
         grit_item: lastQuestion?.grit_item,
       });
 
-      // ✅ 評価データに名前を付加して保存
       setEvaluations(prev => [
         ...prev,
         {
@@ -81,37 +78,30 @@ export default function Home() {
       ]);
 
       const safeMessages: Message[] = [...updatedMessages];
-
-      const initialUsed = safeMessages.some(
-        m => m.role === 'assistant' && m.grit_item === 1
-      );
-      if (!initialUsed) {
-        safeMessages.unshift(initialQuestion);
-      }
-
       const usedGritItems = safeMessages
         .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
         .map(m => m.grit_item);
 
       const questionRes = await axios.post('/api/generate-question', {
         messages: safeMessages,
-        usedGritItems: usedGritItems,
+        usedGritItems,
       });
 
       const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content,
-          grit_item,
-          grit_item_name,
-          questionId,
-        }
-      ]);
-
-      setQuestionIndex(prev => prev + 1);
+      // ✅ クロージング（12問目終了時）
+      if (evaluations.length === 11) {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content, grit_item, grit_item_name, questionId },
+          { role: 'assistant', content: '以上で全12問の質問は終了です。ご回答ありがとうございました。' }
+        ]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content, grit_item, grit_item_name, questionId }
+        ]);
+      }
     } catch (err: any) {
       console.error('❌ handleSubmit error:', err.message);
       setError('通信エラー：' + (err?.message || '不明なエラー'));
@@ -136,14 +126,16 @@ export default function Home() {
           rows={4}
           style={{ width: '100%', marginTop: '1rem' }}
           placeholder="ここに回答を入力してください"
+          disabled={evaluations.length >= 12}
         />
         <br />
-        <button onClick={handleSubmit} disabled={loading || !answer}>
+        <button onClick={handleSubmit} disabled={loading || !answer || evaluations.length >= 12}>
           {loading ? '送信中...' : '送信'}
         </button>
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
-        {questionIndex === 12 && (
+        {/* ✅ ボタン表示条件を修正：12問すべて評価済みの場合のみ */}
+        {evaluations.length === 12 && (
           <button
             onClick={() => {
               const qaPairs = messages
