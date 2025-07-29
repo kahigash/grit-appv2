@@ -51,7 +51,7 @@ export default function Home() {
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
-    if (evaluations.length >= 12) return; // 🔒 保険：13問目以降に進まない
+    if (evaluations.length >= 12) return;
 
     const currentAnswer = answer;
     setAnswer('');
@@ -88,10 +88,9 @@ export default function Home() {
         usedGritItems,
       });
 
-     const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+      const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
       if (grit_item === null) {
-        // ✅ すべて終了時：クロージングメッセージのみを追加（評価はしない）
         setMessages(prev => [
           ...prev,
           { role: 'assistant', content }
@@ -100,7 +99,6 @@ export default function Home() {
         return;
       }
 
-      // ✅ クロージング（12問目終了時）
       if (evaluations.length === 11) {
         setMessages(prev => [
           ...prev,
@@ -128,76 +126,74 @@ export default function Home() {
         {messages.map((msg, idx) => (
           <p key={idx}>
             <strong>
-            {msg.role === 'assistant' && msg.questionId
-              ? `Q: 質問 ${msg.questionId} / 12`
-              : msg.role === 'user'
-              ? 'A:'
-              : ''}
+              {msg.role === 'assistant' && msg.questionId
+                ? `Q: 質問 ${msg.questionId} / 12`
+                : msg.role === 'user'
+                ? 'A:'
+                : ''}
             </strong>{' '}
             {msg.content}
           </p>
         ))}
-        
-    {/* 回答入力欄と送信ボタン */}
-{!loading && questionIndex <= 12 && (
-  <div>
-    <textarea
-      value={answer}
-      onChange={(e) => setAnswer(e.target.value)}
-      rows={4}
-      style={{ width: '100%', marginTop: '1rem' }}
-      placeholder="ここに回答を入力してください"
-    />
-    <br />
-    <button onClick={handleSubmit} disabled={!answer}>
-      送信
-    </button>
-  </div>
-)}
 
-{/* ローディング中の表示 */}
-{loading && (
-  <p style={{ marginTop: '1rem', color: '#555' }}>次の質問を生成中です...</p>
-)}
-
-{/* エラー表示 */}
-{error && <p style={{ color: 'red' }}>{error}</p>}
-
-        {/* ✅ ボタン表示条件を修正：12問すべて評価済みの場合のみ */}
-        {evaluations.length === 12 && (
-          <button
-            onClick={() => {
-              const qaPairs = messages
-                .reduce<string[]>((acc, msg, idx) => {
-                  if (msg.role === 'assistant') {
-                    const next = messages[idx + 1];
-                    if (next?.role === 'user') {
-                      acc.push(
-                        `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
-                      );
-                    }
-                  }
-                  return acc;
-                }, [])
-                .join('\n\n');
-
-              localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
-              localStorage.setItem('qaPairs', qaPairs);
-              window.location.href = '/result';
-            }}
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: '#0070f3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            診断結果を確認する
-          </button>
+        {!loading && evaluations.length < 12 && (
+          <div>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={4}
+              style={{ width: '100%', marginTop: '1rem' }}
+              placeholder="ここに回答を入力してください"
+            />
+            <br />
+            <button onClick={handleSubmit} disabled={!answer}>
+              送信
+            </button>
+          </div>
         )}
+
+        {loading && (
+          <p style={{ marginTop: '1rem', color: '#555' }}>次の質問を生成中です...</p>
+        )}
+
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+
+        {messages.length > 0 &&
+          messages[messages.length - 1].role === 'assistant' &&
+          messages[messages.length - 1].content.includes('全12問の質問は終了') && (
+            <button
+              onClick={() => {
+                const qaPairs = messages
+                  .reduce<string[]>((acc, msg, idx) => {
+                    if (msg.role === 'assistant') {
+                      const next = messages[idx + 1];
+                      if (next?.role === 'user') {
+                        acc.push(
+                          `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
+                        );
+                      }
+                    }
+                    return acc;
+                  }, [])
+                  .join('\n\n');
+
+                localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
+                localStorage.setItem('qaPairs', qaPairs);
+                window.location.href = '/result';
+              }}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              診断結果を確認する
+            </button>
+          )}
       </div>
 
       <div style={{ flex: 1 }}>
