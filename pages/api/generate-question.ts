@@ -5,82 +5,43 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const ASSISTANT_ID = 'asst_IKhqPUQ0DYuhqzEp6Mj1oizR';
-const MAX_QUESTIONS = 12;
-
-const gritItemNameMap: Record<number, string> = {
-  1: '注意散漫への対処力',
-  2: '熱意の持続性',
-  3: '長期集中力',
-  4: '関心の安定性',
-  5: '目標の一貫性',
-  6: '関心の持続力',
-  7: '没頭力',
-  8: 'レジリエンス',
-  9: '長期的継続力',
-  10: '地道な努力の継続性',
-  11: 'やり遂げ力',
-  12: 'モチベーションの自己管理力',
-};
+const ASSISTANT_ID = 'asst_IKhqPUQ0DYuhqzEp6Mj1oizR'; // Question Generator
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { usedGritItems, messages } = req.body;
+  const { messages, usedGritItems } = req.body;
 
-  if (!Array.isArray(messages) || !Array.isArray(usedGritItems)) {
-    return res.status(400).json({ error: 'Invalid request format' });
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'Invalid messages array' });
   }
 
   try {
-    // 質問回数のカウント
-    const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
+    const thread = await openai.beta.threads.create();
 
-    if (questionCount >= MAX_QUESTIONS) {
-      return res.status(200).json({
-        result: 'これで質問は終了です。お疲れさまでした！',
-        grit_item: null,
-        grit_item_name: null,
-        questionId: questionCount + 1,
-      });
-    }
-
-    // 未使用のGRIT項目リストを作成
-    const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
-    const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
-
-    if (remainingItems.length === 0) {
-      return res.status(200).json({
-        result: 'これで質問は終了です。お疲れさまでした！',
-        grit_item: null,
-        grit_item_name: null,
-        questionId: questionCount + 1,
-      });
-    }
-
-    // 次のGRIT項目をランダム選出
-    const gritItem = remainingItems[Math.floor(Math.random() * remainingItems.length)];
-    const gritItemName = gritItemNameMap[gritItem];
-
-    // 直前のユーザー回答（任意）を取得
-    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+    // 最後のユーザー回答を抽出（messagesはrole: 'user'と'assistant'が交互）
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
     const lastAnswer = lastUserMessage?.content ?? '';
 
-    // Assistant API 呼び出し
-    const thread = await openai.beta.threads.create();
+    // 使ったGRIT項目一覧をコメントに付与
+    const gritNote = Array.isArray(usedGritItems)
+      ? `これまでに使用したGRIT項目（番号）は: ${usedGritItems.join(', ')} です。まだ出題していない項目から1つ選び、その観点から質問を出してください。`
+      : '未出題項目から選んでください。';
+
+    // ユーザーの直前の回答を明示し、共感コメント＋次の質問を出すよう指示
+    const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\n${gritNote}`;
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
-      content: `GRIT項目${gritItem}に対応する質問を出してください。\n前のユーザー回答: ${lastAnswer}`,
+      content: fullPrompt,
     });
 
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: ASSISTANT_ID,
     });
 
-    // Run完了待ち
     let status = run.status;
     while (status !== 'completed') {
       await new Promise((r) => setTimeout(r, 1000));
@@ -91,27 +52,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 出力取得
-    const messagesList = await openai.beta.threads.messages.list(thread.id);
-    const latest = messagesList.data[0];
+    const messagesRes = await openai.beta.threads.messages.list(thread.id);
+    const latest = messagesRes.data[0];
     const textContent = latest.content.find(
-      (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
+      (c): c is { type: 'text'; text: { value: string } } => c.type === 'text'
     );
 
     if (!textContent) {
-      throw new Error('No text content found');
+      throw new Error('No valid text response from assistant');
     }
 
-    const result = textContent.text.value.trim();
+    const fullText = textContent.text.value.trim();
+
+    // 既出のGRIT項目から未出の番号を抽出（1〜12）
+    const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
+    const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
+    const nextItem = remainingItems[0];
+
+    const gritItemNames: Record<number, string> = {
+      1: '注意散漫への対処力',
+      2: '熱意の持続性',
+      3: '長期集中力',
+      4: '関心の安定性',
+      5: '目標の一貫性',
+      6: '関心の持続力',
+      7: '没頭力',
+      8: 'レジリエンス',
+      9: '長期的継続力',
+      10: '地道な努力の継続性',
+      11: 'やり遂げ力',
+      12: 'モチベーションの自己管理力',
+    };
 
     res.status(200).json({
-      result,
-      grit_item: gritItem,
-      grit_item_name: gritItemName,
-      questionId: questionCount + 1,
+      result: fullText,
+      grit_item: nextItem,
+      grit_item_name: gritItemNames[nextItem],
+      questionId: usedGritItems.length + 1,
     });
-  } catch (err: any) {
-    console.error('[Generate Question Error]', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    console.error('[generate-question error]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
