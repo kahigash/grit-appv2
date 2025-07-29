@@ -87,7 +87,17 @@ export default function Home() {
         usedGritItems,
       });
 
-      const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+     const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
+
+      if (grit_item === null) {
+        // ✅ すべて終了時：クロージングメッセージのみを追加（評価はしない）
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content }
+        ]);
+        setLoading(false);
+        return;
+      }
 
       // ✅ クロージング（12問目終了時）
       if (evaluations.length === 11) {
