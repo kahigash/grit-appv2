@@ -71,12 +71,6 @@ const handleSubmit = async () => {
       grit_item: lastQuestion?.grit_item,
     });
 
-const evalRes = await axios.post('/api/assistant', {
-  answer: currentAnswer,
-  questionText: lastQuestion?.content || '',
-  grit_item: lastQuestion?.grit_item,
-});
-
   setEvaluations(prev => [
     ...prev,
     {
