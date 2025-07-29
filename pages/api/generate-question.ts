@@ -21,17 +21,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const thread = await openai.beta.threads.create();
 
-    // 最後のユーザー回答を抽出（messagesはrole: 'user'と'assistant'が交互）
+    // 最後のユーザー回答を抽出
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
     const lastAnswer = lastUserMessage?.content ?? '';
 
-    // 使ったGRIT項目一覧をコメントに付与
-    const gritNote = Array.isArray(usedGritItems)
-      ? `これまでに使用したGRIT項目（番号）は: ${usedGritItems.join(', ')} です。まだ出題していない項目から1つ選び、その観点から質問を出してください。`
-      : '未出題項目から選んでください。';
+    // 既出のGRIT項目から未出の番号を抽出（1〜12）
+    const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
+    const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
+    const nextItem = remainingItems[0];
 
-    // ユーザーの直前の回答を明示し、共感コメント＋次の質問を出すよう指示
-    const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\n${gritNote}`;
+    const gritItemNames: Record<number, string> = {
+      1: '注意散漫への対処力',
+      2: '熱意の持続性',
+      3: '長期集中力',
+      4: '関心の安定性',
+      5: '目標の一貫性',
+      6: '関心の持続力',
+      7: '没頭力',
+      8: 'レジリエンス',
+      9: '長期的継続力',
+      10: '地道な努力の継続性',
+      11: 'やり遂げ力',
+      12: 'モチベーションの自己管理力',
+    };
+
+    // ✅ Assistantに次に出すべきGRIT項目番号と名称を明示的に伝える
+    const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\n次に評価すべきGRIT項目は「${nextItem}：${gritItemNames[nextItem]}」です。この項目に関連したインタビュースタイルの質問を1つ出してください（200文字以内）。`;
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
@@ -63,26 +78,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const fullText = textContent.text.value.trim();
-
-    // 既出のGRIT項目から未出の番号を抽出（1〜12）
-    const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
-    const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
-    const nextItem = remainingItems[0];
-
-    const gritItemNames: Record<number, string> = {
-      1: '注意散漫への対処力',
-      2: '熱意の持続性',
-      3: '長期集中力',
-      4: '関心の安定性',
-      5: '目標の一貫性',
-      6: '関心の持続力',
-      7: '没頭力',
-      8: 'レジリエンス',
-      9: '長期的継続力',
-      10: '地道な努力の継続性',
-      11: 'やり遂げ力',
-      12: 'モチベーションの自己管理力',
-    };
 
     res.status(200).json({
       result: fullText,
