@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messagesRes = await openai.beta.threads.messages.list(thread.id);
     const latest = messagesRes.data[0];
     const textContent = latest.content.find(
-      (c): c is { type: 'text'; text: { value: string } } => c.type === 'text'
+      (c): c is { type: 'text'; text: { value: string; annotations: any[] } } => c.type === 'text'
     );
 
     if (!textContent) {
