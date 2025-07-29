@@ -33,6 +33,7 @@ export default function ResultPage() {
   const [summary, setSummary] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [dotCount, setDotCount] = useState(1);
+  const [qaPairs, setQaPairs] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,17 +46,19 @@ export default function ResultPage() {
     const parsed: Evaluation[] = JSON.parse(stored);
     setEvaluations(parsed);
 
-    const qaPairs = localStorage.getItem('gritQAPairs');
-    if (!qaPairs) {
+    const storedQa = localStorage.getItem('gritQAPairs');
+    if (!storedQa) {
       setSummary('QAペアが見つかりません。');
       setLoading(false);
       return;
     }
 
+    setQaPairs(storedQa);
+
     fetch('/api/summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qaPairs }),
+      body: JSON.stringify({ qaPairs: storedQa }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -137,13 +140,22 @@ export default function ResultPage() {
 
       <h2>評価項目別のまとめ</h2>
       <h3>✅ 強み</h3>
-      <ul>
-        {strengths.map((item, idx) => <li key={idx}>{item}</li>)}
-      </ul>
+      {strengths.length === 0 ? (
+        <p>特になし</p>
+      ) : (
+        <ul>
+          {strengths.map((item, idx) => <li key={idx}>{item}</li>)}
+        </ul>
+      )}
+
       <h3>⚠️ 改善の余地あり</h3>
-      <ul>
-        {weaknesses.map((item, idx) => <li key={idx}>{item}</li>)}
-      </ul>
+      {weaknesses.length === 0 ? (
+        <p>特になし</p>
+      ) : (
+        <ul>
+          {weaknesses.map((item, idx) => <li key={idx}>{item}</li>)}
+        </ul>
+      )}
 
       <h2>個別評価</h2>
       {evaluations.map((evalItem, idx) => (
