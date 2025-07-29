@@ -1,14 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { OpenAI } from 'openai';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const MODEL_NAME = process.env.MODEL_NAME ?? 'gpt-4o';
+const ASSISTANT_ID = 'asst_IKhqPUQ0DYuhqzEp6Mj1oizR';
 const MAX_QUESTIONS = 12;
 
-// GRIT項目の正式名称マップ（1〜12）
 const gritItemNameMap: Record<number, string> = {
   1: '注意散漫への対処力',
   2: '熱意の持続性',
@@ -29,104 +28,90 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages, usedGritItems: providedUsedGritItems } = req.body;
+  const { usedGritItems, messages } = req.body;
 
-if (!messages || !Array.isArray(messages)) {
-  return res.status(400).json({ error: 'Invalid request format' });
-}
-
-const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
-
-// Q1（最初の質問）は固定
-if (questionCount === 0) {
-  return res.status(200).json({
-    result: '仕事中に新しいアイデアが浮かんだとき、現在の作業とどうバランスをとりますか？',
-    questionId: 1,
-    grit_item: 1,
-    grit_item_name: '注意散漫への対処力',
-  });
-}
-
-  // 使用済みGRIT項目の抽出（新ロジック）
-  const usedGritItems: number[] = Array.isArray(providedUsedGritItems)
-    ? providedUsedGritItems
-    : messages
-        .filter((m: any) => m.role === 'assistant' && typeof m.grit_item === 'number')
-        .map((m: any) => m.grit_item);
-
-  // すべての質問が終わった場合
-  if (usedGritItems.length >= 12) {
-    return res.status(200).json({
-      result: 'ご協力ありがとうございました。これまでのお話はとても興味深かったです。以上で質問は終了です。お疲れ様でした。',
-      questionId: questionCount + 1,
-      grit_item: 0,
-      grit_item_name: '終了',
-    });
+  if (!Array.isArray(messages) || !Array.isArray(usedGritItems)) {
+    return res.status(400).json({ error: 'Invalid request format' });
   }
-
-  // 未出題のGRIT項目を特定
-  const remainingGritItems = Object.keys(gritItemNameMap)
-    .map(Number)
-    .filter((item) => !usedGritItems.includes(item));
-
-  if (remainingGritItems.length === 0) {
-    return res.status(200).json({
-      result: 'すべてのGRIT項目への質問が完了しました。ご協力ありがとうございました！',
-      questionId: questionCount + 1,
-      grit_item: 0,
-      grit_item_name: '終了',
-    });
-  }
-
-  const gritItem = remainingGritItems[0]; // ランダムにしたい場合はここをシャッフルしても良い
-  const gritItemName = gritItemNameMap[gritItem];
-
-  const systemPrompt = `
-  あなたは企業の採用面接におけるインタビュアーです。
-  今回は「${gritItemName}（GRIT項目${gritItem}）」を測定するための質問を作成してください。
-
-  候補者の「やり抜く力（GRIT）」を評価する目的で、以下の方針に従ってください。
-
-  【質問作成ルール】
-  - 質問は必ず日本語で1つだけ出力してください。
-  - 「GRIT」や心理学用語（粘り強さ、非認知能力など）は一切使用しないでください。
-  - 出力は**150文字以内の自然な疑問文**で終えてください。
-  - 出力文には「Q:」「Q1:」「A:」などのラベルを含めないでください。
-  - 質問文以外の内容（評価・コメント・感想・アドバイスなど）は絶対に含めないでください。
-  - 前の回答に自然な形で共感を示したうえで、次の質問を投げかけてください。
-  - 共感と質問は1文につなげて構いませんが、必ず「〜ですか？」「〜ましたか？」「〜でしょうか？」など**明確な疑問文**にしてください。
-  - 「〜でしょう」「〜ですね」など断定口調・感想文は禁止です。
-  - 前の回答の一部を引用しながら、「なぜそう考えたのか？」「どう感じたか？」「その後どうしたか？」など、経験や行動の深掘りを意識してください。
-  `;
-
-  const fullMessages = [
-    { role: 'system', content: systemPrompt },
-    ...messages,
-  ];
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MODEL_NAME,
-      messages: fullMessages,
-      temperature: 0.7,
-    });
+    // 質問回数のカウント
+    const questionCount = messages.filter((m: any) => m.role === 'assistant').length;
 
-    const generated = response.choices?.[0]?.message?.content?.trim() || '';
-
-    if (!generated) {
-      return res.status(500).json({ error: 'No content generated' });
+    if (questionCount >= MAX_QUESTIONS) {
+      return res.status(200).json({
+        result: 'これで質問は終了です。お疲れさまでした！',
+        grit_item: null,
+        grit_item_name: null,
+        questionId: questionCount + 1,
+      });
     }
 
-    const questionId = questionCount + 1;
+    // 未使用のGRIT項目リストを作成
+    const allItems = Array.from({ length: 12 }, (_, i) => i + 1);
+    const remainingItems = allItems.filter((item) => !usedGritItems.includes(item));
 
-    return res.status(200).json({
-      result: generated,
-      questionId,
+    if (remainingItems.length === 0) {
+      return res.status(200).json({
+        result: 'これで質問は終了です。お疲れさまでした！',
+        grit_item: null,
+        grit_item_name: null,
+        questionId: questionCount + 1,
+      });
+    }
+
+    // 次のGRIT項目をランダム選出
+    const gritItem = remainingItems[Math.floor(Math.random() * remainingItems.length)];
+    const gritItemName = gritItemNameMap[gritItem];
+
+    // 直前のユーザー回答（任意）を取得
+    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+    const lastAnswer = lastUserMessage?.content ?? '';
+
+    // Assistant API 呼び出し
+    const thread = await openai.beta.threads.create();
+
+    await openai.beta.threads.messages.create(thread.id, {
+      role: 'user',
+      content: `GRIT項目${gritItem}に対応する質問を出してください。\n前のユーザー回答: ${lastAnswer}`,
+    });
+
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: ASSISTANT_ID,
+    });
+
+    // Run完了待ち
+    let status = run.status;
+    while (status !== 'completed') {
+      await new Promise((r) => setTimeout(r, 1000));
+      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      status = runStatus.status;
+      if (status === 'failed' || status === 'cancelled') {
+        throw new Error(`Run failed: ${status}`);
+      }
+    }
+
+    // 出力取得
+    const messagesList = await openai.beta.threads.messages.list(thread.id);
+    const latest = messagesList.data[0];
+    const textContent = latest.content.find(
+      (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
+    );
+
+    if (!textContent) {
+      throw new Error('No text content found');
+    }
+
+    const result = textContent.text.value.trim();
+
+    res.status(200).json({
+      result,
       grit_item: gritItem,
       grit_item_name: gritItemName,
+      questionId: questionCount + 1,
     });
-  } catch (error: any) {
-    console.error('OpenAI Error:', error?.response?.data || error.message);
-    return res.status(500).json({ error: 'Failed to generate question' });
+  } catch (err: any) {
+    console.error('[Generate Question Error]', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 }
