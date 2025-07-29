@@ -71,23 +71,30 @@ const handleSubmit = async () => {
       grit_item: lastQuestion?.grit_item,
     });
 
-  setEvaluations(prev => [
-    ...prev,
-    {
-      ...evalRes.data,
-      grit_item_name: gritItemNameMap[evalRes.data.grit_item],
-    }
-  ]);
+// 🔍 評価アシスタントに送信
+const evalRes = await axios.post('/api/assistant', {
+  answer: currentAnswer,
+  questionText: lastQuestion?.content || '',
+  grit_item: lastQuestion?.grit_item,
+});
 
-    // 🔍 次の質問を生成（直前までのすべての履歴を送信）
-    const usedGritItems = messages
-      .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
-      .map(m => m.grit_item);
+setEvaluations(prev => [
+  ...prev,
+  {
+    ...evalRes.data,
+    grit_item_name: gritItemNameMap[evalRes.data.grit_item],
+  }
+]);
 
-    const questionRes = await axios.post('/api/generate-question', {
-      messages: [...messages, { role: 'user', content: currentAnswer }],
-      usedGritItems,
-    });
+// 🔍 次の質問を生成（直前までのすべての履歴を送信）
+const usedGritItems = messages
+  .filter(m => m.role === 'assistant' && typeof m.grit_item === 'number')
+  .map(m => m.grit_item);
+
+const questionRes = await axios.post('/api/generate-question', {
+  messages: [...messages, { role: 'user', content: currentAnswer }],
+  usedGritItems,
+});
 
     const { result: content, grit_item, grit_item_name, questionId } = questionRes.data;
 
