@@ -45,8 +45,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       12: 'モチベーションの自己管理力',
     };
 
-    // ✅ Assistantに次に出すべきGRIT項目番号と名称を明示的に伝える
-    const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\n次に評価すべきGRIT項目は「${nextItem}：${gritItemNames[nextItem]}」です。この項目に関連したインタビュースタイルの質問を1つ出してください（200文字以内）。`;
+    // ✅ Assistantに次に出すべきGRIT項目を伝えるが、出力には含めないよう明示する
+    const fullPrompt = `以下はユーザーの直前の回答です。この内容に簡単な共感コメントをつけた上で、次の質問を出してください。\n\n${lastAnswer}\n\nなお、次に評価したい観点は「${nextItem}：${gritItemNames[nextItem]}」ですが、この意図はユーザーに悟られないようにしてください。質問文には評価対象の項目名や番号などを一切含めず、自然なインタビュースタイルの質問を1つだけ出力してください（200文字以内）。`;
+
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
