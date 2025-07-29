@@ -127,7 +127,13 @@ export default function Home() {
         <h2>GRITチャット</h2>
         {messages.map((msg, idx) => (
           <p key={idx}>
-            <strong>{msg.role === 'assistant' ? `Q: 質問 ${Math.ceil((idx + 1) / 2)} / 12` : 'A:'}</strong>{' '}
+            <strong>
+            {msg.role === 'assistant' && msg.questionId
+              ? `Q: 質問 ${msg.questionId} / 12`
+              : msg.role === 'user'
+              ? 'A:'
+              : ''}
+            </strong>{' '}
             {msg.content}
           </p>
         ))}
