@@ -47,6 +47,7 @@ export default function Home() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [questionIndex, setQuestionIndex] = useState(1);
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
