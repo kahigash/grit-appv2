@@ -136,7 +136,13 @@ export default function Home() {
           </p>
         ))}
 
-        {!loading && evaluations.length < 12 && (
+        {!loading &&
+        evaluations.length < 12 &&
+        !(
+          messages.length > 0 &&
+          messages[messages.length - 1].role === 'assistant' &&
+          messages[messages.length - 1].content.includes('全12問の質問は終了')
+        ) && (
           <div>
             <textarea
               value={answer}
@@ -150,7 +156,7 @@ export default function Home() {
               送信
             </button>
           </div>
-        )}
+      )}
 
         {loading && (
           <p style={{ marginTop: '1rem', color: '#555' }}>次の質問を生成中です...</p>
