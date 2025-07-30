@@ -31,7 +31,8 @@ const gritItemNameMap: Record<number, string> = {
 export default function ResultPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [summary, setSummary] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryGenerated, setSummaryGenerated] = useState(false);
   const [dotCount, setDotCount] = useState(1);
   const [qaPairs, setQaPairs] = useState<string | null>(null);
   const router = useRouter();
@@ -49,12 +50,14 @@ export default function ResultPage() {
     const storedQa = localStorage.getItem('gritQAPairs');
     if (!storedQa) {
       setSummary('QAペアが見つかりません。');
-      setLoading(false);
       return;
     }
 
     setQaPairs(storedQa);
 
+    // ↓↓ 自動実行バージョン（今はコメントアウト中）
+    /*
+    setLoadingSummary(true);
     fetch('/api/summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,22 +66,51 @@ export default function ResultPage() {
       .then((res) => res.json())
       .then((data) => {
         setSummary(data.summary || '総評が取得できませんでした。');
-        setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         setSummary('総評の取得に失敗しました。');
-        setLoading(false);
+      })
+      .finally(() => {
+        setLoadingSummary(false);
+        setSummaryGenerated(true);
       });
+    */
   }, [router]);
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loadingSummary) return;
     const interval = setInterval(() => {
       setDotCount((prev) => (prev % 3) + 1);
     }, 500);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loadingSummary]);
+
+  const generateSummary = () => {
+    if (!qaPairs) {
+      setSummary('QAペアが見つかりません。');
+      return;
+    }
+
+    setLoadingSummary(true);
+    fetch('/api/summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qaPairs }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setSummary(data.summary || '総評が取得できませんでした。');
+      })
+      .catch((err) => {
+        console.error(err);
+        setSummary('総評の取得に失敗しました。');
+      })
+      .finally(() => {
+        setLoadingSummary(false);
+        setSummaryGenerated(true);
+      });
+  };
 
   const averageScore =
     evaluations.length > 0
@@ -113,11 +145,30 @@ export default function ResultPage() {
       <h1>GRIT診断結果</h1>
 
       <h2>AIコメント</h2>
-      {loading ? (
+      {!summaryGenerated && !loadingSummary && (
+        <button
+          onClick={generateSummary}
+          style={{
+            marginBottom: '1rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
+        >
+          AIコメントを出力する
+        </button>
+      )}
+
+      {loadingSummary && (
         <p style={{ marginBottom: '2rem' }}>
           AIコメント作成中{'.'.repeat(dotCount)}
         </p>
-      ) : (
+      )}
+
+      {summaryGenerated && !loadingSummary && (
         <p style={{ whiteSpace: 'pre-line', marginBottom: '2rem' }}>{summary}</p>
       )}
 
