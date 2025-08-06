@@ -5,7 +5,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-// 事前に作成したアシスタントID（総評用）
+// 総評用のアシスタントID
 const ASSISTANT_ID = 'asst_Bh72OE8J9tAsOXc0tvVACq7h';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,19 +13,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { qaPairs } = req.body;
+  const { qaPairs, evaluations } = req.body;
 
-  if (!qaPairs || typeof qaPairs !== 'string') {
-    return res.status(400).json({ error: 'Invalid or missing qaPairs' });
+  if (!qaPairs || typeof qaPairs !== 'object' || !Array.isArray(evaluations)) {
+    return res.status(400).json({ error: 'Invalid or missing qaPairs or evaluations' });
   }
 
   try {
     const thread = await openai.beta.threads.create();
 
-    // Q&Aペアをそのまま入力
+    // 質問回答ペア + 評価スコアをまとめてAssistantに渡す
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
-      content: qaPairs,
+      content: JSON.stringify({
+        qaPairs,
+        evaluations,
+      }),
     });
 
     const run = await openai.beta.threads.runs.create(thread.id, {
@@ -59,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('No valid JSON found in Assistant response');
     }
 
-    const json = JSON.parse(match[1]); // JSONオブジェクトのみ抽出
+    const json = JSON.parse(match[1]);
 
     res.status(200).json(json);
   } catch (error: any) {
