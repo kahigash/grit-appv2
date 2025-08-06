@@ -177,24 +177,24 @@ export default function ResultPage() {
       <p>{scoreLevel(parseFloat(averageScore))}</p>
 
       <h2>レーダーチャート</h2>
-        <div
+      <div
         style={{
           width: '70%',
           height: 400,
           marginBottom: '2rem',
-          marginLeft: 0 // ← 左寄せにするための追加
-        }}
-        >
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={chartData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="subject" />
-            <PolarRadiusAxis angle={30} domain={[0, 5]} />
-            <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-            <Tooltip />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
+          marginLeft: '1rem'
+      }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart data={chartData}>
+          <PolarGrid />
+          <PolarAngleAxis dataKey="subject" />
+          <PolarRadiusAxis angle={30} domain={[0, 5]} />
+          <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+          <Tooltip />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
 
       <h2>評価項目別のまとめ</h2>
       <h3>✅ 強み</h3>
