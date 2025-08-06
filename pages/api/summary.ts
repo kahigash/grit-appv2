@@ -5,7 +5,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-// 総評用のアシスタントID
 const ASSISTANT_ID = 'asst_Bh72OE8J9tAsOXc0tvVACq7h';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -20,18 +19,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // ✅ ステップ1: リクエストデータをログ出力
     console.log('🧪 qaPairs:', JSON.stringify(qaPairs, null, 2));
     console.log('🧪 evaluations:', JSON.stringify(evaluations, null, 2));
 
+    // 離職確率をサーバー側で正確に計算
+    const weights: Record<number, number> = {
+      2: 0.30,
+      5: 0.25,
+      8: 0.20,
+      12: 0.15,
+      4: 0.10,
+    };
+
+    let weightedSum = 0;
+    let weightTotal = 0;
+
+    evaluations.forEach((evalItem: any) => {
+      const weight = weights[evalItem.grit_item];
+      if (weight) {
+        weightedSum += evalItem.score * weight;
+        weightTotal += weight;
+      }
+    });
+
+    const turnoverRate = Math.round((1 - weightedSum / 5) * 100);
+    console.log('📊 Calculated Turnover Rate:', turnoverRate);
+
     const thread = await openai.beta.threads.create();
 
-    // 質問回答ペア + 評価スコアをまとめてAssistantに渡す
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: JSON.stringify({
         qaPairs,
         evaluations,
+        turnoverRate,
       }),
     });
 
@@ -60,8 +81,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const rawText = textContent.text.value.trim();
-
-    // ✅ ステップ2: Assistantの出力をログ出力
     console.log('📨 Assistant response text:', rawText);
 
     const match = rawText.match(/({[\s\S]*?})/);
@@ -71,7 +90,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const json = JSON.parse(match[1]);
-
     res.status(200).json(json);
   } catch (error: any) {
     console.error('[Summary API Error]', error.message);
