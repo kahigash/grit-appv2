@@ -96,8 +96,10 @@ export default function ResultPage() {
     fetch('/api/summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qaPairs }),
-    })
+      body: JSON.stringify({
+        qaPairs: JSON.parse(qaPairs),
+        evaluations
+      }),
       .then((res) => res.json())
       .then((data) => {
         setSummary(data.summary || '総評が取得できませんでした。');
