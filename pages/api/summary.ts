@@ -20,6 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // ✅ ステップ1: リクエストデータをログ出力
+    console.log('🧪 qaPairs:', JSON.stringify(qaPairs, null, 2));
+    console.log('🧪 evaluations:', JSON.stringify(evaluations, null, 2));
+
     const thread = await openai.beta.threads.create();
 
     // 質問回答ペア + 評価スコアをまとめてAssistantに渡す
@@ -56,6 +60,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const rawText = textContent.text.value.trim();
+
+    // ✅ ステップ2: Assistantの出力をログ出力
+    console.log('📨 Assistant response text:', rawText);
+
     const match = rawText.match(/({[\s\S]*?})/);
 
     if (!match) {
