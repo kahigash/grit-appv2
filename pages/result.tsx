@@ -177,7 +177,14 @@ export default function ResultPage() {
       <p>{scoreLevel(parseFloat(averageScore))}</p>
 
       <h2>レーダーチャート</h2>
-      <div style={{ width: '70%', height: 400, marginBottom: '2rem', textAlign: 'left' }}>
+        <div
+        style={{
+          width: '70%',
+          height: 400,
+          marginBottom: '2rem',
+          marginLeft: 0 // ← 左寄せにするための追加
+        }}
+        >
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData}>
             <PolarGrid />
