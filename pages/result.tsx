@@ -87,32 +87,34 @@ export default function ResultPage() {
   }, [loadingSummary]);
 
   const generateSummary = () => {
-    if (!qaPairs) {
-      setSummary('QAペアが見つかりません。');
-      return;
-    }
+  if (!qaPairs) {
+    setSummary('QAペアが見つかりません。');
+    return;
+  }
 
-    setLoadingSummary(true);
-    fetch('/api/summary', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        qaPairs: JSON.parse(qaPairs),
-        evaluations
-      }),
-      .then((res) => res.json())
-      .then((data) => {
-        setSummary(data.summary || '総評が取得できませんでした。');
-      })
-      .catch((err) => {
-        console.error(err);
-        setSummary('総評の取得に失敗しました。');
-      })
-      .finally(() => {
-        setLoadingSummary(false);
-        setSummaryGenerated(true);
-      });
-  };
+  setLoadingSummary(true);
+
+  fetch('/api/summary', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      qaPairs: JSON.parse(qaPairs),      // ← string をオブジェクトに
+      evaluations: evaluations           // ← ステートから直接渡す
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      setSummary(data.summary || '総評が取得できませんでした。');
+    })
+    .catch((err) => {
+      console.error(err);
+      setSummary('総評の取得に失敗しました。');
+    })
+    .finally(() => {
+      setLoadingSummary(false);
+      setSummaryGenerated(true);
+    });
+};
 
   const averageScore =
     evaluations.length > 0
