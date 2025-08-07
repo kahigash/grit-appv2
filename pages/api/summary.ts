@@ -14,16 +14,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { qaPairs, evaluations } = req.body;
 
-  if (!qaPairs || typeof qaPairs !== 'object' || !Array.isArray(evaluations)) {
+  console.log('📥 Received body:', JSON.stringify(req.body, null, 2));
+
+  // ✅ qaPairsが文字列ならパース
+  let parsedQaPairs = qaPairs;
+  if (typeof parsedQaPairs === 'string') {
+    try {
+      parsedQaPairs = JSON.parse(parsedQaPairs);
+    } catch (e) {
+      return res.status(400).json({ error: 'qaPairs is not valid JSON string' });
+    }
+  }
+
+  // ✅ バリデーション
+  if (!Array.isArray(parsedQaPairs) || !Array.isArray(evaluations)) {
     return res.status(400).json({ error: 'Invalid or missing qaPairs or evaluations' });
   }
 
   try {
-    console.log('📥 Received body:', req.body);
+    console.log('🧪 qaPairs:', JSON.stringify(parsedQaPairs, null, 2));
+    console.log('🧪 evaluations:', JSON.stringify(evaluations, null, 2));
 
-    const parsedQAPairs = typeof qaPairs === 'string' ? JSON.parse(qaPairs) : qaPairs;
-
-    // ✅ 離職確率をサーバー側で計算
+    // ✅ 離職確率の計算
     const weights: Record<number, number> = {
       2: 0.30,
       5: 0.25,
@@ -46,18 +58,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const turnoverRate = Math.round((1 - weightedSum / 5) * 100);
     console.log('📊 Calculated Turnover Rate:', turnoverRate);
 
-    const startTime = Date.now();
-
-    // ✅ Assistant実行開始
+    // ✅ Assistantに送信
     const thread = await openai.beta.threads.create();
-
-    // ⏱️ 最後の2ターン分だけ送信（質問＋回答）
-    const recentPairs = parsedQAPairs.slice(-2);
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: JSON.stringify({
-        qaPairs: recentPairs,
+        qaPairs: parsedQaPairs,
         evaluations,
         turnoverRate,
       }),
@@ -65,18 +72,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: ASSISTANT_ID,
-      temperature: 0.3,
     });
 
     let status = run.status;
     let waitCount = 0;
 
     while (status !== 'completed') {
-      await new Promise((r) => setTimeout(r, 500)); // ⏱️ 500ms polling
+      await new Promise((r) => setTimeout(r, 1000));
       waitCount++;
-      console.log(`⏳ Waiting... ${waitCount * 0.5}s elapsed`);
+      console.log(`⏳ Waiting... ${waitCount}s elapsed`);
 
-      if (waitCount > 240) {
+      if (waitCount > 120) {
         throw new Error('⏰ Timeout: Assistant API did not respond within 120 seconds.');
       }
 
@@ -89,10 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ Assistant run completed in ${elapsed}s`);
-
-    // ✅ 完了したらメッセージ取得
+    // ✅ 回答取得
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
 
