@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🧪 qaPairs:', JSON.stringify(qaPairs, null, 2));
     console.log('🧪 evaluations:', JSON.stringify(evaluations, null, 2));
 
-    // 離職確率をサーバー側で正確に計算
+    // ✅ 離職確率をサーバー側で計算
     const weights: Record<number, number> = {
       2: 0.30,
       5: 0.25,
@@ -45,6 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const turnoverRate = Math.round((1 - weightedSum / 5) * 100);
     console.log('📊 Calculated Turnover Rate:', turnoverRate);
 
+    // ✅ Assistant実行開始
     const thread = await openai.beta.threads.create();
 
     await openai.beta.threads.messages.create(thread.id, {
@@ -61,23 +62,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     let status = run.status;
+    let waitCount = 0;
+
     while (status !== 'completed') {
       await new Promise((r) => setTimeout(r, 1000));
+      waitCount++;
+      console.log(`⏳ Waiting... ${waitCount}s elapsed`);
+
+      if (waitCount > 120) {
+        throw new Error('⏰ Timeout: Assistant API did not respond within 120 seconds.');
+      }
+
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       status = runStatus.status;
+      console.log('📡 Current run status:', status);
+
       if (status === 'failed' || status === 'cancelled') {
-        throw new Error(`Run failed: ${status}`);
+        throw new Error(`❌ Run failed with status: ${status}`);
       }
     }
 
+    // ✅ 完了したらメッセージ取得
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
+
     const textContent = latest.content.find(
       (c): c is { type: 'text'; text: { value: string; annotations: any } } => c.type === 'text'
     );
 
     if (!textContent) {
-      throw new Error('No text response from Assistant');
+      throw new Error('❌ No text response from Assistant');
     }
 
     const rawText = textContent.text.value.trim();
@@ -86,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const match = rawText.match(/({[\s\S]*?})/);
 
     if (!match) {
-      throw new Error('No valid JSON found in Assistant response');
+      throw new Error('❌ No valid JSON found in Assistant response');
     }
 
     const json = JSON.parse(match[1]);
