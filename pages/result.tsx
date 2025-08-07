@@ -54,14 +54,37 @@ export default function ResultPage() {
     }
 
     setQaPairs(storedQa);
+  }, [router]);
 
-    // ↓↓ 自動実行バージョン（今はコメントアウト中）
-    /*
+  useEffect(() => {
+    if (!loadingSummary) return;
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [loadingSummary]);
+
+  const generateSummary = () => {
+    console.log('✅ generateSummary called');
+
+    if (!qaPairs) {
+      console.error('❌ qaPairs is null');
+      setSummary('QAペアが見つかりません。');
+      return;
+    }
+
+    console.log('📦 qaPairs:', qaPairs);
+    console.log('📦 evaluations:', evaluations);
+
     setLoadingSummary(true);
+
     fetch('/api/summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qaPairs: storedQa }),
+      body: JSON.stringify({
+        qaPairs: JSON.parse(qaPairs),
+        evaluations: evaluations,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -75,46 +98,7 @@ export default function ResultPage() {
         setLoadingSummary(false);
         setSummaryGenerated(true);
       });
-    */
-  }, [router]);
-
-  useEffect(() => {
-    if (!loadingSummary) return;
-    const interval = setInterval(() => {
-      setDotCount((prev) => (prev % 3) + 1);
-    }, 500);
-    return () => clearInterval(interval);
-  }, [loadingSummary]);
-
-  const generateSummary = () => {
-  if (!qaPairs) {
-    setSummary('QAペアが見つかりません。');
-    return;
-  }
-
-  setLoadingSummary(true);
-
-  fetch('/api/summary', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      qaPairs: JSON.parse(qaPairs),      // ← string をオブジェクトに
-      evaluations: evaluations           // ← ステートから直接渡す
-    }),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      setSummary(data.summary || '総評が取得できませんでした。');
-    })
-    .catch((err) => {
-      console.error(err);
-      setSummary('総評の取得に失敗しました。');
-    })
-    .finally(() => {
-      setLoadingSummary(false);
-      setSummaryGenerated(true);
-    });
-};
+  };
 
   const averageScore =
     evaluations.length > 0
