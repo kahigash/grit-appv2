@@ -14,6 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { qaPairs, evaluations } = req.body;
 
+  // ✅ 受信データの構造確認ログ
+  console.log('📥 Received body:', JSON.stringify(req.body, null, 2));
+
   if (!qaPairs || typeof qaPairs !== 'object' || !Array.isArray(evaluations)) {
     return res.status(400).json({ error: 'Invalid or missing qaPairs or evaluations' });
   }
