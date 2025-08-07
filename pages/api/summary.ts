@@ -14,18 +14,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { qaPairs, evaluations } = req.body;
 
-  // ✅ 受信データの構造確認ログ
   console.log('📥 Received body:', JSON.stringify(req.body, null, 2));
 
-  if (!qaPairs || typeof qaPairs !== 'object' || !Array.isArray(evaluations)) {
+  // ✅ qaPairsが文字列ならパース
+  let parsedQaPairs = qaPairs;
+  if (typeof parsedQaPairs === 'string') {
+    try {
+      parsedQaPairs = JSON.parse(parsedQaPairs);
+    } catch (e) {
+      return res.status(400).json({ error: 'qaPairs is not valid JSON string' });
+    }
+  }
+
+  // ✅ バリデーション
+  if (!Array.isArray(parsedQaPairs) || !Array.isArray(evaluations)) {
     return res.status(400).json({ error: 'Invalid or missing qaPairs or evaluations' });
   }
 
   try {
-    console.log('🧪 qaPairs:', JSON.stringify(qaPairs, null, 2));
+    console.log('🧪 qaPairs:', JSON.stringify(parsedQaPairs, null, 2));
     console.log('🧪 evaluations:', JSON.stringify(evaluations, null, 2));
 
-    // ✅ 離職確率をサーバー側で計算
+    // ✅ 離職確率の計算
     const weights: Record<number, number> = {
       2: 0.30,
       5: 0.25,
@@ -48,13 +58,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const turnoverRate = Math.round((1 - weightedSum / 5) * 100);
     console.log('📊 Calculated Turnover Rate:', turnoverRate);
 
-    // ✅ Assistant実行開始
+    // ✅ Assistantに送信
     const thread = await openai.beta.threads.create();
 
     await openai.beta.threads.messages.create(thread.id, {
       role: 'user',
       content: JSON.stringify({
-        qaPairs,
+        qaPairs: parsedQaPairs,
         evaluations,
         turnoverRate,
       }),
@@ -85,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // ✅ 完了したらメッセージ取得
+    // ✅ 回答取得
     const messages = await openai.beta.threads.messages.list(thread.id);
     const latest = messages.data[0];
 
