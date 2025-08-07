@@ -82,8 +82,8 @@ export default function ResultPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        qaPairs: JSON.parse(qaPairs),
-        evaluations: evaluations,
+        qaPairs, // ✅ 修正済み：JSON.parseは不要
+        evaluations,
       }),
     })
       .then((res) => res.json())
@@ -164,27 +164,27 @@ export default function ResultPage() {
       <p>平均スコア: {averageScore}</p>
       <p>{scoreLevel(parseFloat(averageScore))}</p>
 
-    <h2>レーダーチャート</h2>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'flex-start',
-        width: '60%',
-        marginBottom: '2rem'
-      }}
-    >
-      <div style={{ width: '70%', height: 400 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={chartData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="subject" />
-            <PolarRadiusAxis angle={30} domain={[0, 5]} />
-            <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-            <Tooltip />
-          </RadarChart>
-        </ResponsiveContainer>
+      <h2>レーダーチャート</h2>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          width: '60%',
+          marginBottom: '2rem'
+        }}
+      >
+        <div style={{ width: '70%', height: 400 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={chartData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis angle={30} domain={[0, 5]} />
+              <Radar name="GRIT" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+              <Tooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-    </div>
 
       <h2>評価項目別のまとめ</h2>
       <h3>✅ 強み</h3>
