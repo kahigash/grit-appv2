@@ -160,26 +160,25 @@ export default function Home() {
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
-        {/* ✅ 修正：評価が12個揃ったら「診断結果を見る」ボタン表示 */}
         {evaluations.length === 12 && (
           <button
             onClick={() => {
               const qaPairs = messages
-                .reduce<string[]>((acc, msg, idx) => {
+                .reduce<{ question: string; answer: string }[]>((acc, msg, idx) => {
                   if (msg.role === 'assistant' && msg.questionId) {
                     const next = messages[idx + 1];
                     if (next?.role === 'user') {
-                      acc.push(
-                        `【質問${acc.length + 1}】\nQ: ${msg.content}\nA: ${next.content}`
-                      );
+                      acc.push({
+                        question: msg.content,
+                        answer: next.content
+                      });
                     }
                   }
                   return acc;
-                }, [])
-                .join('\n\n');
+                }, []);
 
               localStorage.setItem('gritEvaluations', JSON.stringify(evaluations));
-              localStorage.setItem('gritQAPairs', qaPairs); // ✅ 修正：キー名をgritQAPairsに統一
+              localStorage.setItem('gritQAPairs', JSON.stringify(qaPairs));
               window.location.href = '/result';
             }}
             style={{
